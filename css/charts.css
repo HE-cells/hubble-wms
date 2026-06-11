@@ -1,0 +1,159 @@
+/* charts.css — Chart.js container sizing & wrappers */
+
+.chart-wrapper {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+}
+
+.chart-title {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: var(--sp-3);
+}
+
+/* Dashboard layout */
+.dashboard-grid {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.dashboard-bar-chart {
+  /* Stacked bar — full width */
+}
+
+.dashboard-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 1100px) {
+  .dashboard-bottom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Donut chart */
+.donut-container {
+  max-width: 220px;
+  max-height: 220px;
+  margin: 0 auto;
+}
+
+/* Donut legend */
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--font-sm);
+}
+
+.donut-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend-name {
+  flex: 1;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.donut-legend-value {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.donut-legend-pct {
+  color: var(--text-muted);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Activities list */
+.activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  max-height: 260px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: 6px var(--sp-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.activity-item:hover { background: rgba(255,255,255,0.04); }
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.activity-hours {
+  flex: none;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* keep the dot aligned with the first line of a wrapped description */
+.activity-dot { margin-top: 5px; }
+
+/* Report charts */
+.report-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+@media (max-width: 900px) {
+  .report-grid { grid-template-columns: 1fr; }
+}
+
+/* Bar chart sizing */
+canvas.bar-chart { max-height: 280px; }
+canvas.donut-chart { max-height: 220px; }

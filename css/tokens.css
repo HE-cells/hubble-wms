@@ -1,0 +1,86 @@
+/* tokens.css — Design system variables (from UI UX Specification.md §1) */
+
+:root {
+  /* ── Backgrounds ──────────────────────────────────────── */
+  --bg-sidebar:   #1c2026;
+  --bg-main:      #242930;
+  --bg-card:      #2c323a;
+  --bg-input:     #1c2026;
+  --overlay:      rgba(0, 0, 0, 0.55);
+
+  /* ── Typography ───────────────────────────────────────── */
+  --text-primary: #e4eaee;
+  --text-muted:   #8b97a2;
+
+  /* ── Accent / Action ──────────────────────────────────── */
+  --accent:       #03a9f4;
+  --accent-hover: #0288d1;
+  --accent-dim:   rgba(3, 169, 244, 0.15);
+
+  /* ── Borders ──────────────────────────────────────────── */
+  --border:       #3a444e;
+  --border-color: #3a444e;   /* alias of --border, used by inline styles */
+
+  /* ── Surfaces (elevated panels / hover) ───────────────── */
+  --surface-1:    #2c323a;   /* = --bg-card */
+  --surface-2:    #323842;   /* slightly elevated surface */
+  --text-secondary: #b8c2cb; /* between --text-primary and --text-muted */
+
+  /* ── Status / Semantic ────────────────────────────────── */
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-danger:  #f44336;
+  --color-info:    #03a9f4;
+  --danger:  #f44336;   /* alias of --color-danger, used by inline styles */
+  --success: #4caf50;   /* alias of --color-success */
+  --warning: #ff9800;   /* alias of --color-warning */
+  --primary: #03a9f4;   /* alias of --accent */
+
+  /* ── Project palette (12 colors) ──────────────────────── */
+  --tag-cyan:    #03a9f4;
+  --tag-purple:  #9c27b0;
+  --tag-green:   #4caf50;
+  --tag-magenta: #e91e63;
+  --tag-orange:  #ff9800;
+  --tag-blue:    #2196f3;
+  --tag-teal:    #009688;
+  --tag-red:     #f44336;
+  --tag-yellow:  #ffc107;
+  --tag-indigo:  #3f51b5;
+  --tag-lime:    #8bc34a;
+  --tag-brown:   #795548;
+
+  /* ── Border radii ─────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius:    6px;
+  --radius-lg: 10px;
+
+  /* ── Spacing ──────────────────────────────────────────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* ── Layout ───────────────────────────────────────────── */
+  --sidebar-width: 250px;
+  --topbar-height:  56px;
+
+  /* ── Font ─────────────────────────────────────────────── */
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-xs:   11px;
+  --font-sm:   12px;
+  --font-base: 14px;
+  --font-md:   15px;
+  --font-lg:   18px;
+  --font-xl:   24px;
+
+  /* ── Transitions ──────────────────────────────────────── */
+  --transition: 0.15s ease;
+
+  /* ── Shadows ──────────────────────────────────────────── */
+  --shadow-card:  0 2px 8px rgba(0,0,0,0.4);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.6);
+}

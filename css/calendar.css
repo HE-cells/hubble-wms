@@ -1,0 +1,307 @@
+/* calendar.css — FullCalendar dark-theme overrides */
+
+/* Static toolbar (week-nav + Week/Day toggle) above the scroll area */
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--sp-3);
+}
+.cal-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: var(--sp-3);
+}
+.cal-view-toggle .btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cal-zoom {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: var(--sp-3);
+}
+
+/* Calendar viewport — fixed height. FC fills it (height:'100%') and provides its OWN single
+   internal body scroller, so there's exactly one scrollbar and the day-header freezes natively
+   via stickyHeaderDates. Offset leaves room for the static toolbar above. */
+#fc-container {
+  height: calc(100vh - var(--topbar-height) - 170px);
+  min-height: 460px;
+}
+
+/* Toolbar */
+.fc .fc-toolbar-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fc .fc-button {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.fc .fc-button:hover,
+.fc .fc-button-active,
+.fc .fc-button:not(:disabled):active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.fc .fc-button:focus { box-shadow: none; outline: none; }
+
+/* Grid background */
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+  border-color: var(--border);
+}
+
+.fc .fc-col-header-cell-cushion {
+  padding: 6px 0;
+  text-decoration: none !important;
+}
+
+/* Custom day header: day label + daily total */
+.fc-col-header-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.fc-col-day {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.fc-col-holiday {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent-amber, #c9a020);
+  letter-spacing: 0;
+  min-height: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.fc-col-total {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  min-height: 13px; /* reserve space so header height is stable before totals load */
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+
+.fc .fc-timegrid-axis { border-color: var(--border); }
+
+.fc-scrollgrid-sync-table { background: var(--bg-card); }
+
+/* Now indicator: accent-colored line + triangle */
+.fc .fc-timegrid-now-indicator-line {
+  border-color: var(--accent);
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: var(--accent);   /* ▶ triangle — this is the visible edge */
+}
+
+/* Weekend columns — same background as any workday (no special styling) */
+
+/* Kill FC's own today color variable so it doesn't paint a yellow/tinted background. */
+#fc-container { --fc-today-bg-color: transparent; }
+
+/* Today header cell — same dark background as all other header cells (--bg-sidebar).
+   Without this, clearing the today-color leaves it transparent and the white parent shows. */
+.fc .fc-col-header-cell.fc-day-today {
+  background: var(--bg-sidebar) !important;
+}
+
+/* Today body column — transparent, same as every other body column. */
+.fc .fc-timegrid-col.fc-day-today {
+  background: transparent !important;
+}
+
+/* Only the header date label and daily-total turn accent to mark today. */
+.fc .fc-day-today .fc-col-day,
+.fc .fc-day-today .fc-col-total {
+  color: var(--accent) !important;
+}
+
+/* Events — base. Triple-lock border removal:
+   1) override FC's CSS variable, 2) !important rule, 3) eventDidMount also sets it inline */
+.fc-event {
+  --fc-event-border-color: transparent;
+  border-radius: var(--radius-sm) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-size: var(--font-xs) !important;
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+
+/* Harness wrapper — make sure it doesn't add any visible edge */
+.fc-timegrid-event-harness > .fc-timegrid-event {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Left colour bar — driven by --ev-color set by eventDidMount; declared
+   after border:none so !important cascade resolves in its favour */
+.fc-timegrid-event {
+  border-left: 3px solid var(--ev-color, transparent) !important;
+}
+
+.fc-event:hover { filter: brightness(1.15); }
+
+/* Suppress FullCalendar's default time display at the top of each event
+   (we render our own duration at the bottom via eventContent) */
+.fc-timegrid-event .fc-event-time { display: none !important; }
+
+/* Custom event body — rendered by eventContent in calendar.js */
+.fc-ev-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 3px 6px;
+  overflow: hidden;
+}
+
+/* Title grows to fill space, but can shrink — clips via overflow:hidden */
+.fc-ev-title {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* Project · Client — always pinned, never shrinks */
+.fc-ev-proj {
+  flex: 0 0 auto;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  line-height: 1.2;
+  /* color set inline by eventContent */
+}
+
+/* Duration — always pinned at bottom, never shrinks */
+.fc-ev-bottom {
+  flex: 0 0 auto;
+  font-size: 10px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* billable class kept for future CSS targeting — border now set inline by eventDidMount */
+.fc-event.billable { }
+
+/* Selection highlight when dragging to create */
+.fc .fc-highlight {
+  background: var(--accent-dim);
+}
+
+/* Resize handle */
+.fc .fc-timegrid-event-harness .fc-event-resizer {
+  height: 8px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* Time-axis column width + text styling.
+   FC's timegrid tables use table-layout:fixed, so the column width is driven by the
+   axis CONTENT (the cushions), NOT the cell width. */
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion {
+  display: inline-block;
+  min-width: 73px;
+  text-align: center;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  font-size: var(--font-base);   /* 14px — slightly larger than the xs default */
+}
+
+/* Time column: hide the horizontal slot lines (axis column only — day-column
+   gridlines stay). Keep the 1px border width so axis rows stay height-aligned
+   with the day lanes; only the colour is hidden. */
+.fc .fc-timegrid-slot-label { border-top-color: transparent !important; }
+
+/* Center each time label vertically on its gridline (the slot's top edge),
+   instead of FullCalendar's default top-aligned position. */
+.fc .fc-timegrid-slot-label-cushion { transform: translateY(-50%); }
+
+/* Zoom controls — centered in the time-axis header cell */
+.fc-zoom-controls {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  z-index: 5;
+}
+
+.fc-zoom-btn {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.fc-zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Month view: holiday cell highlighting ─────────────────────
+   Applied via dayCellClassNames callback when _holidays[date] exists. */
+.fc-daygrid-day.fc-day-has-holiday {
+  background: rgba(201, 160, 32, 0.05) !important;
+}
+.fc-daygrid-day.fc-day-has-holiday .fc-daygrid-day-number {
+  background: rgba(201, 160, 32, 0.28);
+  border-radius: 50%;
+  color: #c9a020;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,395 @@
+// pages/clients.js — Clients list with quick-add, search, archive & edit
+// Spec §3.8: Title, "Show active" filter + search, quick-add form, table
+// (NAME / ADDRESS / CURRENCY + row actions).
+
+import { getClients, createClient, updateClient, deleteClient } from '../api/clients.js';
+import { isAdmin } from '../auth.js';
+
+const CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AUD'];
+
+let _profile      = null;
+let _clients      = [];
+let _search       = '';
+let _activeFilter = 'active';   // 'active' | 'all' | 'inactive'
+
+// ──────────────────────────────────────────────────────────────
+// ENTRY POINT
+// ──────────────────────────────────────────────────────────────
+
+export async function render(profile) {
+  _profile      = profile;
+  _search       = '';
+  _activeFilter = 'active';
+
+  document.getElementById('topbar-left').innerHTML =
+    `<span class="topbar-title">Clients</span>`;
+
+  document.getElementById('content').innerHTML = `
+    <!-- Quick-add -->
+    <div class="card" style="margin-bottom:var(--sp-4)">
+      <div style="display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap;">
+        <input type="text" id="cl-name" placeholder="Add new client" style="flex:1; min-width:200px;">
+        <input type="text" id="cl-address" placeholder="Address (optional)" style="flex:1; min-width:160px;">
+        <select id="cl-currency" style="width:auto; min-width:90px;">
+          ${CURRENCIES.map(c => `<option value="${c}"${c === 'THB' ? ' selected' : ''}>${c}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary" id="cl-add">ADD</button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <select id="cl-filter">
+        <option value="active">Show active</option>
+        <option value="all">Show all</option>
+        <option value="inactive">Show inactive</option>
+      </select>
+      <div class="search-input">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="search" id="cl-search" placeholder="Search clients…">
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div id="cl-table-wrap">
+      <div class="empty-state"><div class="empty-state-title">Loading…</div></div>
+    </div>
+  `;
+
+  _wireControls();
+  await _load();
+}
+
+function _wireControls() {
+  const content = document.getElementById('content');
+  content.querySelector('#cl-add')?.addEventListener('click', _handleAdd);
+  content.querySelector('#cl-name')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') _handleAdd();
+  });
+  content.querySelector('#cl-filter')?.addEventListener('change', e => {
+    _activeFilter = e.target.value;
+    _renderTable();
+  });
+  content.querySelector('#cl-search')?.addEventListener('input', e => {
+    _search = e.target.value.trim().toLowerCase();
+    _renderTable();
+  });
+}
+
+async function _load() {
+  try {
+    _clients = await getClients({ activeOnly: false });
+  } catch (err) {
+    window.showToast?.(err.message, 'error');
+    _clients = [];
+  }
+  _renderTable();
+}
+
+// ──────────────────────────────────────────────────────────────
+// TABLE
+// ──────────────────────────────────────────────────────────────
+
+function _filtered() {
+  return _clients.filter(c => {
+    if (_activeFilter === 'active'   && !c.is_active) return false;
+    if (_activeFilter === 'inactive' &&  c.is_active) return false;
+    if (_search) {
+      const hay = `${c.name || ''} ${c.address || ''}`.toLowerCase();
+      if (!hay.includes(_search)) return false;
+    }
+    return true;
+  });
+}
+
+function _renderTable() {
+  const wrap = document.getElementById('cl-table-wrap');
+  if (!wrap) return;
+
+  const rows  = _filtered();
+  const admin = isAdmin();
+
+  if (rows.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state" style="margin-top:40px">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <div class="empty-state-title">${_search || _activeFilter !== 'active' ? 'No matching clients' : 'No clients yet'}</div>
+        <div class="empty-state-sub">${_search || _activeFilter !== 'active' ? 'Try a different filter or search' : 'Add your first client above'}</div>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Currency</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(c => _renderRow(c, admin)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // Wire row actions
+  wrap.querySelectorAll('tbody tr').forEach(tr => {
+    const client = _clients.find(c => c.id === tr.dataset.id);
+    if (!client) return;
+    tr.querySelector('.act-edit')?.addEventListener('click', () => _openEditModal(client));
+    tr.querySelector('.act-archive')?.addEventListener('click', () => _setActive(client, false));
+    tr.querySelector('.act-restore')?.addEventListener('click', () => _setActive(client, true));
+    tr.querySelector('.act-delete')?.addEventListener('click', () => _confirmDelete(client));
+  });
+}
+
+function _renderRow(c, admin) {
+  const name     = _esc(c.name || '');
+  const address  = c.address ? _esc(c.address) : '<span class="text-muted">—</span>';
+  const inactive = !c.is_active;
+
+  const archiveBtn = admin
+    ? (inactive
+        ? `<button class="row-action-btn act-restore" title="Restore">
+             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <polyline points="1 4 1 10 7 10"/>
+               <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+             </svg>
+           </button>`
+        : `<button class="row-action-btn act-archive" title="Archive">
+             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/>
+               <line x1="10" y1="12" x2="14" y2="12"/>
+             </svg>
+           </button>`)
+    : '';
+
+  const deleteBtn = admin
+    ? `<button class="row-action-btn danger act-delete" title="Delete">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <polyline points="3 6 5 6 21 6"/>
+           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+         </svg>
+       </button>`
+    : '';
+
+  return `
+    <tr data-id="${c.id}"${inactive ? ' style="opacity:0.55"' : ''}>
+      <td style="font-weight:500;">${name}${inactive ? ' <span class="badge badge-client" style="margin-left:6px;">inactive</span>' : ''}</td>
+      <td>${address}</td>
+      <td><span class="text-muted">${_esc(c.currency || 'THB')}</span></td>
+      <td class="col-actions">
+        <div class="row-actions">
+          <button class="row-action-btn act-edit" title="Edit">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          ${archiveBtn}
+          ${deleteBtn}
+        </div>
+      </td>
+    </tr>`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// ACTIONS
+// ──────────────────────────────────────────────────────────────
+
+async function _handleAdd() {
+  const content  = document.getElementById('content');
+  const nameEl    = content.querySelector('#cl-name');
+  const addressEl = content.querySelector('#cl-address');
+  const currEl    = content.querySelector('#cl-currency');
+  const addBtn    = content.querySelector('#cl-add');
+
+  const name = nameEl.value.trim();
+  if (!name) { window.showToast?.('Enter a client name', 'error'); return; }
+
+  addBtn.disabled = true;
+  try {
+    const client = await createClient({
+      name,
+      address:  addressEl.value.trim(),
+      currency: currEl.value,
+    });
+    _clients.push(client);
+    nameEl.value = '';
+    addressEl.value = '';
+    currEl.value = 'THB';
+    nameEl.focus();
+    _renderTable();
+    window.showToast?.('Client added', 'success');
+  } catch (err) {
+    window.showToast?.(err.message, 'error');
+  } finally {
+    addBtn.disabled = false;
+  }
+}
+
+async function _setActive(client, active) {
+  try {
+    const updated = await updateClient(client.id, { isActive: active });
+    const idx = _clients.findIndex(c => c.id === client.id);
+    if (idx >= 0) _clients[idx] = updated;
+    // Keep the result visible: the current filter would otherwise hide the row that just moved.
+    _activeFilter = 'all';
+    const sel = document.getElementById('cl-filter');
+    if (sel) sel.value = 'all';
+    _renderTable();
+    window.showToast?.(active ? 'Client restored' : 'Client archived', 'success');
+  } catch (err) {
+    window.showToast?.(err.message, 'error');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// EDIT MODAL
+// ──────────────────────────────────────────────────────────────
+
+function _openEditModal(client) {
+  const admin = isAdmin();
+  const mount = document.getElementById('modal-mount');
+  mount.innerHTML = `
+    <div class="modal-backdrop" id="cl-modal-backdrop">
+      <div class="modal modal-sm" id="cl-modal">
+        <div class="modal-header">
+          <span class="modal-title">Edit client</span>
+          <button class="modal-close" id="cl-modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:var(--sp-3);">
+          <label style="display:flex; flex-direction:column; gap:4px;">
+            <span class="text-muted" style="font-size:var(--font-xs)">Name</span>
+            <input type="text" id="cl-edit-name" value="${_attr(client.name || '')}">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:4px;">
+            <span class="text-muted" style="font-size:var(--font-xs)">Address</span>
+            <input type="text" id="cl-edit-address" value="${_attr(client.address || '')}">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:4px;">
+            <span class="text-muted" style="font-size:var(--font-xs)">Currency</span>
+            <select id="cl-edit-currency">
+              ${CURRENCIES.map(c => `<option value="${c}"${c === (client.currency || 'THB') ? ' selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </label>
+          ${admin ? `
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="cl-edit-active"${client.is_active ? ' checked' : ''}>
+            <span>Active</span>
+          </label>` : ''}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cl-modal-cancel">Cancel</button>
+          <button class="btn btn-primary" id="cl-modal-save">SAVE</button>
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => { mount.innerHTML = ''; };
+  mount.querySelector('#cl-modal-close').addEventListener('click', close);
+  mount.querySelector('#cl-modal-cancel').addEventListener('click', close);
+  mount.querySelector('#cl-modal-backdrop').addEventListener('click', e => {
+    if (e.target.id === 'cl-modal-backdrop') close();
+  });
+
+  mount.querySelector('#cl-modal-save').addEventListener('click', async () => {
+    const name = mount.querySelector('#cl-edit-name').value.trim();
+    if (!name) { window.showToast?.('Enter a client name', 'error'); return; }
+    const payload = {
+      name,
+      address:  mount.querySelector('#cl-edit-address').value.trim(),
+      currency: mount.querySelector('#cl-edit-currency').value,
+    };
+    if (admin) payload.isActive = mount.querySelector('#cl-edit-active').checked;
+
+    const saveBtn = mount.querySelector('#cl-modal-save');
+    saveBtn.disabled = true;
+    try {
+      const updated = await updateClient(client.id, payload);
+      const idx = _clients.findIndex(c => c.id === client.id);
+      if (idx >= 0) _clients[idx] = updated;
+      close();
+      _renderTable();
+      window.showToast?.('Client updated', 'success');
+    } catch (err) {
+      window.showToast?.(err.message, 'error');
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// DELETE CONFIRM (admin/owner only)
+// ──────────────────────────────────────────────────────────────
+
+function _confirmDelete(client) {
+  const mount = document.getElementById('modal-mount');
+  mount.innerHTML = `
+    <div class="modal-backdrop" id="cl-del-backdrop">
+      <div class="modal modal-sm" id="cl-del-modal">
+        <div class="modal-header">
+          <span class="modal-title">Delete client</span>
+          <button class="modal-close" id="cl-del-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin:0;">Delete <strong>${_esc(client.name || '')}</strong>? This cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cl-del-cancel">Cancel</button>
+          <button class="btn btn-danger" id="cl-del-confirm">Delete</button>
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => { mount.innerHTML = ''; };
+  mount.querySelector('#cl-del-close').addEventListener('click', close);
+  mount.querySelector('#cl-del-cancel').addEventListener('click', close);
+  mount.querySelector('#cl-del-backdrop').addEventListener('click', e => {
+    if (e.target.id === 'cl-del-backdrop') close();
+  });
+
+  mount.querySelector('#cl-del-confirm').addEventListener('click', async () => {
+    const btn = mount.querySelector('#cl-del-confirm');
+    btn.disabled = true;
+    try {
+      await deleteClient(client.id);
+      _clients = _clients.filter(c => c.id !== client.id);
+      close();
+      _renderTable();
+      window.showToast?.('Client deleted', 'success');
+    } catch (err) {
+      // Surface the DB error (e.g. FK from projects) — keep the modal open.
+      window.showToast?.(err.message, 'error');
+      btn.disabled = false;
+    }
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────
+
+function _esc(s) {
+  return String(s).replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+function _attr(s) {
+  return String(s).replace(/"/g, '&quot;');
+}

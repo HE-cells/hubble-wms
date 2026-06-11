@@ -1,0 +1,18 @@
+# Deployable app = index.html, app.html, js/, css/ — everything else stays local.
+
+# Internal docs & plans (never publish)
+*.md
+*.log
+
+# Project tooling / archives / backend
+.claude/
+Archived/
+supabase/
+
+# OAuth credentials — NEVER commit
+Google Cloud/
+
+# Spec / reference HTML (not part of the app)
+UI_NAMING_REFERENCE.html
+employee_id_schemes_comparison.html
+employee_id_system_v2.html
