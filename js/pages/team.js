@@ -319,10 +319,8 @@ function _renderMemberRow(u, admin, groups, pendingNameReq = null) {
 
 function _wireMemberRows(wrap, admin) {
   // Row / edit-button click → Profile modal (admin or self).
-  // Versioned dynamic import so the Team page always loads the current modal
-  // (static imports inherit no ?v= and can serve a stale cached module).
   const openEdit = async u => {
-    const { openProfileModal } = await import('../components/profileModal.js?v=34');
+    const { openProfileModal } = await import('../components/profileModal.js');
     await openProfileModal(u);
   };
 

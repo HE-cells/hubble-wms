@@ -3,6 +3,7 @@
 import { submitNameChangeRequest } from '../api/users.js';
 import { supabase } from '../config.js';
 import { submitJobTitleChangeRequest } from '../api/jobTitleRequests.js';
+import { esc } from '../format.js';
 
 export async function openProfileModal(profile) {
   const wd = profile.working_days || [1,2,3,4,5];
@@ -24,7 +25,7 @@ export async function openProfileModal(profile) {
     emp = data || null;
   } catch (_) { /* graceful degradation */ }
 
-  const displayJobTitle = (emp?.job_title || profile.job_title || '—').replace(/</g, '&lt;');
+  const displayJobTitle = esc(emp?.job_title || profile.job_title || '—');
 
   document.getElementById('modal-mount').innerHTML = `
     <div class="modal-backdrop modal-backdrop-content" id="profile-modal-backdrop">
@@ -41,8 +42,8 @@ export async function openProfileModal(profile) {
                         color:#fff;font-size:20px;font-weight:600;display:flex;align-items:center;
                         justify-content:center;flex-shrink:0;">${initials}</div>
             <div>
-              <div style="font-weight:600;font-size:var(--font-md)">${profile.name || '—'}</div>
-              <div class="text-muted" style="font-size:var(--font-sm)">${profile.email || ''}</div>
+              <div style="font-weight:600;font-size:var(--font-md)">${esc(profile.name) || '—'}</div>
+              <div class="text-muted" style="font-size:var(--font-sm)">${esc(profile.email || '')}</div>
               <div class="text-muted" style="font-size:var(--font-xs);margin-top:2px;">
                 User log-in credentials are managed by Google
               </div>
@@ -55,11 +56,11 @@ export async function openProfileModal(profile) {
                       padding:10px 14px;margin-bottom:var(--sp-3);display:flex;flex-wrap:wrap;gap:16px;">
             <div>
               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Employee ID</div>
-              <div style="font-size:13px;font-weight:600;">${(emp.employee_id || '—').replace(/</g,'&lt;')}</div>
+              <div style="font-size:13px;font-weight:600;">${esc(emp.employee_id || '—')}</div>
             </div>
             <div>
               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Department</div>
-              <div style="font-size:13px;font-weight:600;">${((emp.department?.label || emp.department_code) || '—').replace(/</g,'&lt;')}</div>
+              <div style="font-size:13px;font-weight:600;">${esc((emp.department?.label || emp.department_code) || '—')}</div>
             </div>
             <div>
               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Start Date</div>
@@ -70,7 +71,7 @@ export async function openProfileModal(profile) {
           <!-- Display name — read-only for all users; name change via request flow -->
           <div class="form-group">
             <label>Display name</label>
-            <div style="color:var(--text-primary);padding:6px 0 2px;">${(profile.name || '—').replace(/</g,'&lt;')}</div>
+            <div style="color:var(--text-primary);padding:6px 0 2px;">${esc(profile.name || '—')}</div>
             <div id="pm-ncr-area">
               <button class="btn btn-sm btn-ghost" id="pm-req-name-change" style="margin-top:4px;font-size:12px;">Request name change…</button>
             </div>

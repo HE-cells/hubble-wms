@@ -1,6 +1,7 @@
 // js/pages/holidays.js — Leave & Holiday Management (M2)
 
 import { isAdmin, isManager } from '../auth.js';
+import { toISODate, todayISO } from '../format.js';
 import { empSelectHtml, wireEmpSelect, empOptionLabel } from '../components/empSelect.js';
 import { supabase }         from '../config.js';
 import { getEmployees }     from '../api/employees.js';
@@ -72,7 +73,7 @@ function _isWeekend(dateStr) {
 function _nextWeekday(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return toISODate(d);
 }
 // Attach a change-guard that rejects weekend selections on a native date input.
 function _wireWeekendBlock(inputId) {
@@ -1076,6 +1077,7 @@ function _renderMyLeave(wrap) {
     const docPath   = document.getElementById('hl-ml-doc')?.value.trim() || null;
 
     if (!startDate || !endDate) { window.showToast?.('Start and end dates are required', 'error'); return; }
+    if (startDate < todayISO())  { window.showToast?.('Start date cannot be in the past', 'error'); return; }
     if (endDate < startDate)    { window.showToast?.('End date must be on or after start date', 'error'); return; }
     if (_isWeekend(startDate) || _isWeekend(endDate)) { window.showToast?.('Leave cannot start or end on a weekend', 'error'); return; }
 
@@ -1474,6 +1476,7 @@ function _renderTeamLeave(wrap) {
       const docPath   = document.getElementById('hl-tl-doc')?.value.trim() || null;
 
       if (!startDate || !endDate) { window.showToast?.('Start and end dates are required', 'error'); return; }
+      if (startDate < todayISO())  { window.showToast?.('Start date cannot be in the past', 'error'); return; }
       if (endDate < startDate)    { window.showToast?.('End date must be on or after start date', 'error'); return; }
       if (_isWeekend(startDate) || _isWeekend(endDate)) { window.showToast?.('Leave cannot start or end on a weekend', 'error'); return; }
 

@@ -289,7 +289,7 @@
   import { route, startRouter, setDefault } from './js/router.js';
   import { isAdmin, isManager, isMember, isClientRole, canViewReports } from './js/auth.js';
   import { supabase } from './js/config.js';
-  import { getMyLatestNameRequest } from './js/api/users.js?v=20';
+  import { getMyLatestNameRequest } from './js/api/users.js';
 
   // ── Boot ────────────────────────────────────────────────────
   const profile = await loadSession();
@@ -306,7 +306,7 @@
         <pre style="background:#1c2026;border:1px solid #3a444e;border-radius:6px;
                     padding:12px;font-size:13px;color:#ffcc80;white-space:pre-wrap">${reason}</pre>
         <p style="color:#8b97a2;font-size:12px;margin:16px 0 0">
-          URL: <code>${window.location.href.replace(/(code|access_token)=[^&]+/g,'$1=…')}</code></p>
+          URL: <code>${window.location.href.replace(/(code|access_token)=[^&]+/g,'$1=…').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></p>
         <p style="margin:20px 0 0"><a href="index.html" style="color:#03a9f4">← Back to login</a></p>
       </div>`;
     throw new Error('Not authenticated: ' + reason);
@@ -395,13 +395,13 @@
 
   document.getElementById('menu-prefs').addEventListener('click', async () => {
     dropdown.classList.remove('open');
-    const { openPrefsModal } = await import('./js/components/prefsModal.js?v=34');
+    const { openPrefsModal } = await import('./js/components/prefsModal.js');
     openPrefsModal(profile);
   });
 
   document.getElementById('menu-profile').addEventListener('click', async () => {
     dropdown.classList.remove('open');
-    const { openProfileModal } = await import('./js/components/profileModal.js?v=36');
+    const { openProfileModal } = await import('./js/components/profileModal.js');
     await openProfileModal(profile);
   });
 
@@ -643,7 +643,7 @@
   // ── Page routes ──────────────────────────────────────────────
   // Version query busts the browser cache so a hard refresh always loads the latest page JS.
   // Bump this alongside the CSS ?v= when page modules change.
-  const V = '?v=84';
+  const V = '?v=85';
   const pages = {
     '#tracker':   () => import('./js/pages/tracker.js'   + V),
     '#timesheet': () => import('./js/pages/timesheet.js' + V),

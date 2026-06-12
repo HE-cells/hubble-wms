@@ -1,7 +1,7 @@
 // api/timeEntries.js — CRUD for time_entries + time_entry_tags
 
 import { supabase } from '../config.js';
-import { timesToHours, todayISO } from '../format.js';
+import { timesToHours, todayISO, toISODate } from '../format.js';
 
 // Base query with joined project + task + tags
 const SELECT_FULL = `
@@ -47,7 +47,7 @@ export async function getEntries({ userId, dateFrom, dateTo, projectId, limit = 
 export async function getWeekEntries(monday, userId) {
   const sun = new Date(monday + 'T00:00:00');
   sun.setDate(sun.getDate() + 6);
-  const sundayISO = sun.toISOString().split('T')[0];
+  const sundayISO = toISODate(sun);
   return getEntries({ userId, dateFrom: monday, dateTo: sundayISO, limit: 500 });
 }
 

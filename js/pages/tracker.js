@@ -420,7 +420,7 @@ function _renderList() {
 function _renderEntryRow(entry) {
   const project = entry.project;
   const color   = project?.color || '#8b97a2';
-  const label   = project ? `${project.name}${project.clients?.name ? ' · ' + project.clients.name : ''}` : '—';
+  const label   = project ? `${esc(project.name)}${project.clients?.name ? ' · ' + esc(project.clients.name) : ''}` : '—';
   const timeStr = formatTimeRange(entry.start_time, entry.end_time);
   const dur     = formatDuration(Number(entry.total_hours) || 0);
   const tags    = (entry.time_entry_tags || []).map(t => {
@@ -438,7 +438,7 @@ function _renderEntryRow(entry) {
       <!-- Description + project -->
       <div style="flex:1; min-width:0;">
         <div style="font-size:var(--font-base); color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-          ${entry.description || '<span class="text-muted">(no description)</span>'}
+          ${entry.description ? esc(entry.description) : '<span class="text-muted">(no description)</span>'}
         </div>
         <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
           <span class="project-dot" style="background:${color}"></span>

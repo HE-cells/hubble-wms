@@ -193,7 +193,7 @@ function _renderModal({ title, date, startTime, endTime, totalHours = '', projec
           <!-- Description -->
           <div class="form-group">
             <label>Description</label>
-            <textarea id="em-description" placeholder="What did you work on?">${description}</textarea>
+            <textarea id="em-description" placeholder="What did you work on?">${esc(description)}</textarea>
           </div>
 
         </div><!-- /.modal-body -->
@@ -349,7 +349,7 @@ function _buildTaskOptions(projectId, selectedTaskId) {
   let html = '<option value="">— No specific task —</option>';
   if (project?.tasks) {
     for (const t of project.tasks) {
-      html += `<option value="${t.id}" ${t.id === selectedTaskId ? 'selected' : ''}>${t.name}</option>`;
+      html += `<option value="${t.id}" ${t.id === selectedTaskId ? 'selected' : ''}>${esc(t.name)}</option>`;
     }
   }
   return html;

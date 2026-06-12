@@ -1,6 +1,7 @@
 // api/holidays.js — Public holidays CRUD
 
 import { supabase } from '../config.js';
+import { toISODate } from '../format.js';
 
 const HOLIDAY_SELECT = `
   id, year, date, name, country_code, department_code, is_active, created_at,
@@ -34,9 +35,9 @@ export async function createPublicHolidayRange({ startDate, endDate, name, count
   const cur  = new Date(start);
   while (cur <= end) {
     if (rows.length > 60) throw new Error('Holiday range may not exceed 60 days');
-    const ds = cur.toISOString().slice(0, 10);
+    const ds = toISODate(cur);
     rows.push({
-      year:            cur.getFullYear(),
+      year:            parseInt(ds.slice(0, 4), 10),
       date:            ds,
       name,
       country_code:    countryCode,

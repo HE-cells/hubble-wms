@@ -2,7 +2,7 @@
 
 import { isAdmin, isManager } from '../auth.js';
 import { weekNavHtml, wireWeekNav } from '../components/weekNav.js';
-import { setFormatPrefs, getDefaultCurrency } from '../format.js';
+import { setFormatPrefs, getDefaultCurrency, toISODate, todayISO } from '../format.js';
 import { supabase } from '../config.js';
 import { getProjects } from '../api/projects.js';
 import {
@@ -25,9 +25,9 @@ import {
 const _esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const _fmt = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const _money = (a, c) => `${Number(a ?? 0).toLocaleString('en',{minimumFractionDigits:2})} ${_esc(c || 'THB')}`;
-const _today = () => new Date().toISOString().slice(0,10);
+const _today = () => todayISO();
 const _isWeekend = d => { const x = new Date(d + 'T00:00:00').getDay(); return x === 0 || x === 6; };
-const _nextWeekday = () => { const d = new Date(); d.setHours(0,0,0,0); while (_isWeekend(d.toISOString().slice(0,10))) d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); };
+const _nextWeekday = () => { const d = new Date(); d.setHours(0,0,0,0); while (_isWeekend(toISODate(d))) d.setDate(d.getDate()+1); return toISODate(d); };
 
 const STATUS_LABELS = { pending:'Pending', manager_approved:'Mgr Approved', approved:'Approved', rejected:'Rejected', completed:'Completed', cancelled:'Cancelled' };
 const STATUS_CLASS  = { pending:'badge-pending', manager_approved:'badge-warning', approved:'badge-approved', rejected:'badge-rejected', completed:'badge-approved', cancelled:'' };
@@ -196,9 +196,9 @@ function _nextMonday(from) {
 
 // ── Week date-range helpers ────────────────────────────────────
 function _weekRange(monday) {
-  const from = new Date(monday); from.setHours(0,0,0,0);
+  const from = new Date(monday + 'T00:00:00');
   const to = new Date(from); to.setDate(to.getDate() + 6);
-  return { from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10) };
+  return { from: toISODate(from), to: toISODate(to) };
 }
 // True if no week filter is set, or `dateStr` falls within the filter week.
 function _inWeek(dateStr, monday) {
@@ -1039,6 +1039,7 @@ async function _submitTrip() {
   try {
     const start = document.getElementById('tp-start').value;
     const end   = document.getElementById('tp-end').value;
+    if (start && start < todayISO())  throw new Error('Start date cannot be in the past.');
     if (start && _isWeekend(start)) throw new Error('Start date cannot be a weekend day.');
     if (end   && _isWeekend(end))   throw new Error('End date cannot be a weekend day.');
 
