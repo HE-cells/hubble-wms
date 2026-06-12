@@ -2130,8 +2130,8 @@ async function _renderWeeklyReport() {
   async function load() {
     wrap.innerHTML = `<div class="page-loading">Loading…</div>`;
     const wkEnd   = new Date(wkStart); wkEnd.setDate(wkEnd.getDate() + 6); // always Mon+6 = Sun
-    const fromStr = wkStart.toISOString().slice(0,10);
-    const toStr   = wkEnd.toISOString().slice(0,10);
+    const fromStr = toISODate(wkStart);
+    const toStr   = toISODate(wkEnd);
 
     // PT/outsource employees
     const { data: ptEmployees } = await supabase
