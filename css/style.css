@@ -409,13 +409,11 @@ label, .form-label {
   color: var(--text-muted);
 }
 
-input[type="text"],
-input[type="email"],
-input[type="url"],
-input[type="number"],
-input[type="date"],
-input[type="time"],
-input[type="search"],
+/* Text-like inputs are dark by DEFAULT. This is a denylist (:not) — NOT an
+   allowlist of type= values — so a newly-introduced type (password, tel,
+   datetime-local, week, month, …) can never fall through to the white browser
+   default again. Only genuinely non-text controls are excluded. See CLAUDE.md → "Form Inputs". */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="image"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 textarea,
 select {
   background: var(--bg-input);

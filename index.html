@@ -21,10 +21,7 @@
       padding: 16px;
     }
 
-    .login-wrap {
-      width: 100%;
-      max-width: 380px;
-    }
+    .login-wrap { width: 100%; max-width: 380px; }
 
     .login-logo {
       text-align: center;
@@ -49,23 +46,34 @@
       padding: 36px 32px;
     }
 
-    .login-heading {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
+    .login-heading { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
 
-    .login-sub {
-      color: #8b97a2;
-      font-size: 13px;
-      margin-bottom: 28px;
-    }
+    .login-sub { color: #8b97a2; font-size: 13px; margin-bottom: 28px; }
 
-    .btn-google {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+    /* ── views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── form fields ── */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: #8b97a2; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1e2329;
+      border: 1px solid #3a444e;
+      border-radius: 6px;
+      color: #e4eaee;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: #03a9f4; }
+    .field input::placeholder { color: #4a5568; }
+
+    /* ── buttons ── */
+    .btn-primary {
       width: 100%;
       padding: 11px 16px;
       background: #03a9f4;
@@ -75,19 +83,29 @@
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s;
       font-family: inherit;
+      transition: background 0.15s;
     }
+    .btn-primary:hover { background: #0288d1; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .btn-google:hover { background: #0288d1; }
-
-    .btn-google:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .btn-ghost {
+      width: 100%;
+      padding: 11px 16px;
+      background: transparent;
+      color: #8b97a2;
+      border: 1px solid #3a444e;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 10px;
     }
+    .btn-ghost:hover { border-color: #8b97a2; color: #e4eaee; }
 
-    .btn-google svg { flex-shrink: 0; }
-
+    /* ── error / info ── */
     .login-error {
       margin-top: 16px;
       padding: 10px 14px;
@@ -98,8 +116,81 @@
       font-size: 13px;
       display: none;
     }
-
     .login-error.visible { display: block; }
+
+    .login-info {
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: rgba(3, 169, 244, 0.1);
+      border: 1px solid rgba(3, 169, 244, 0.3);
+      border-radius: 6px;
+      color: #81d4fa;
+      font-size: 13px;
+    }
+
+    /* ── divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0 4px;
+      color: #4a5568;
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #3a444e;
+    }
+
+    /* ── Google link ── */
+    .btn-google-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 16px;
+      background: transparent;
+      color: #8b97a2;
+      border: 1px solid #3a444e;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-google-link:hover { border-color: #8b97a2; color: #e4eaee; }
+    .btn-google-link:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── TOTP QR ── */
+    .totp-qr-wrap {
+      text-align: center;
+      margin: 16px 0;
+    }
+    .totp-qr-wrap img {
+      border-radius: 8px;
+      border: 2px solid #3a444e;
+      width: 200px;
+      height: 200px;
+      /* QR modules are dark — needs a light background + quiet zone to scan
+         (Supabase's SVG has a transparent background, invisible on the dark card) */
+      background: #fff;
+      padding: 12px;
+    }
+    .totp-secret {
+      font-family: monospace;
+      font-size: 12px;
+      color: #8b97a2;
+      background: #1e2329;
+      border-radius: 4px;
+      padding: 6px 10px;
+      word-break: break-all;
+      text-align: center;
+      margin-top: 8px;
+    }
 
     .login-footer {
       text-align: center;
@@ -112,7 +203,6 @@
       content: '';
       animation: dots 1.2s steps(4, end) infinite;
     }
-
     @keyframes dots {
       0%, 20%  { content: ''; }
       40%      { content: '.'; }
@@ -124,81 +214,425 @@
 <body>
   <div class="login-wrap">
     <div class="login-logo">TIMESHEET</div>
-    <div class="login-tagline">Time tracking for teams</div>
+    <div class="login-tagline">Hubble Engineering WMS</div>
 
     <div class="login-card">
-      <div class="login-heading">Sign in</div>
-      <div class="login-sub">Use your Google account to continue</div>
 
-      <button class="btn-google" id="btn-signin">
-        <!-- Google icon -->
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
-          <path d="M3.964 10.71C3.786 10.17 3.682 9.593 3.682 9s.104-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-        </svg>
-        <span id="btn-label">Continue with Google</span>
-      </button>
+      <!-- ── VIEW: Employee ID + Password login ── -->
+      <div class="view active" id="view-login">
+        <div class="login-heading">Sign in</div>
+        <div class="login-sub">Enter your Employee ID and password</div>
 
-      <div class="login-error" id="login-error"></div>
-      <div class="login-footer">By signing in, you agree to the workspace terms</div>
-    </div>
+        <div class="field">
+          <label for="f-emp-id">EMPLOYEE ID</label>
+          <input type="text" id="f-emp-id" placeholder="12-3-456-78" autocomplete="username" spellcheck="false" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="f-password">PASSWORD</label>
+          <input type="password" id="f-password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn-primary" id="btn-signin">Sign in</button>
+        <div class="login-error" id="login-error"></div>
+
+        <div class="divider">or</div>
+        <button class="btn-google-link" id="btn-google">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.71C3.786 10.17 3.682 9.593 3.682 9s.104-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <!-- ── VIEW: Forced password change ── -->
+      <div class="view" id="view-change-password">
+        <div class="login-heading">Set your password</div>
+        <div class="login-sub">Your administrator has issued a temporary password. Please set a new one to continue.</div>
+
+        <div class="field">
+          <label for="f-new-password">NEW PASSWORD</label>
+          <input type="password" id="f-new-password" placeholder="At least 12 characters" autocomplete="new-password">
+        </div>
+        <div id="pw-feedback" style="margin-bottom:16px;"></div>
+        <div class="field">
+          <label for="f-confirm-password">CONFIRM PASSWORD</label>
+          <input type="password" id="f-confirm-password" placeholder="Repeat new password" autocomplete="new-password">
+        </div>
+
+        <button class="btn-primary" id="btn-change-password">Set password &amp; continue</button>
+        <div class="login-error" id="change-error"></div>
+      </div>
+
+      <!-- ── VIEW: TOTP 2FA enrollment ── -->
+      <div class="view" id="view-totp">
+        <div class="login-heading">Two-factor authentication</div>
+        <div class="login-sub">Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to verify.</div>
+
+        <div class="totp-qr-wrap">
+          <img id="totp-qr-img" src="" alt="TOTP QR code">
+        </div>
+        <div class="totp-secret" id="totp-secret"></div>
+
+        <div class="field" style="margin-top:16px;">
+          <label for="f-totp-code">VERIFICATION CODE</label>
+          <input type="text" id="f-totp-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
+        </div>
+
+        <button class="btn-primary" id="btn-verify-totp">Verify &amp; continue</button>
+        <button class="btn-ghost" id="btn-skip-totp">Skip for now</button>
+        <div class="login-error" id="totp-error"></div>
+      </div>
+
+      <!-- ── VIEW: TOTP 2FA challenge (return login with enrolled factor) ── -->
+      <div class="view" id="view-totp-challenge">
+        <div class="login-heading">Two-factor authentication</div>
+        <div class="login-sub">Enter the 6-digit code from your authenticator app.</div>
+
+        <div class="field">
+          <label for="f-challenge-code">VERIFICATION CODE</label>
+          <input type="text" id="f-challenge-code" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
+        </div>
+
+        <button class="btn-primary" id="btn-verify-challenge">Verify &amp; continue</button>
+        <div class="login-error" id="challenge-error"></div>
+        <p style="color:#4a5568;font-size:12px;text-align:center;margin-top:14px;">
+          Lost your authenticator? Contact your administrator.
+        </p>
+      </div>
+
+    </div><!-- /.login-card -->
+    <div class="login-footer">Hubble Engineering · Internal use only</div>
   </div>
 
   <script type="module">
-    import { signInWithGoogle, loadSession, getAuthError } from './js/auth.js';
     import { supabase } from './js/config.js';
+    import { signInWithGoogle, loadSession, getSession } from './js/auth.js';
+    import { checkPassword, renderPwFeedback } from './js/passwordPolicy.js';
 
-    const btn   = document.getElementById('btn-signin');
-    const label = document.getElementById('btn-label');
-    const errEl = document.getElementById('login-error');
+    // ── helpers ──────────────────────────────────────────────────
+    const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
 
-    function showErr(msg) {
-      errEl.textContent = msg;
-      errEl.classList.add('visible');
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
     }
 
-    // Surface any OAuth error returned in the URL (e.g. redirect_uri mismatch)
-    const urlErr = new URLSearchParams(
-      window.location.search + '&' + window.location.hash.replace('#', '')
-    );
-    if (urlErr.get('error') || urlErr.get('error_description')) {
-      showErr('OAuth error: ' + (urlErr.get('error_description') || urlErr.get('error')));
+    function showErr(elId, msg) {
+      const el = document.getElementById(elId);
+      el.textContent = msg;
+      el.classList.add('visible');
     }
 
-    // DIAGNOSTIC: if we arrived here WITH an OAuth code in the URL, that means
-    // Supabase redirected to the Site URL (index.html) instead of app.html —
-    // i.e. app.html is not in the Redirect URLs allow-list. Surface that clearly.
-    const landedWithCode = /[?&#](code|access_token)=/.test(window.location.href);
+    function clearErr(elId) {
+      document.getElementById(elId).classList.remove('visible');
+    }
 
-    // Redirect if already logged in (or if we just completed OAuth here)
-    loadSession().then(profile => {
-      if (profile) {
-        window.location.href = 'app.html';
-      } else if (landedWithCode) {
-        showErr(
-          'Signed in with Google, but no session/profile here. Likely cause: ' +
-          '"http://localhost:3030/app.html" is missing from Supabase → Authentication → ' +
-          'URL Configuration → Redirect URLs. Reason: ' + (getAuthError() || 'unknown')
-        );
+    function setLoading(btn, label, loading) {
+      btn.disabled = loading;
+      const span = btn.querySelector('span') ?? btn;
+      if (loading) {
+        span.textContent = label;
+        span.classList.add('loading-dots');
+      } else {
+        span.classList.remove('loading-dots');
+      }
+    }
+
+    // ── redirect if already logged in (route through gates) ─────
+    loadSession().then(async profile => {
+      if (!profile) return;
+      const session = getSession();
+      const meta = session?.user?.user_metadata ?? {};
+      if (meta.force_password_change) {
+        _pwCtx = { email: session?.user?.email };
+        renderPwFeedback(_pwFeedback, '', _pwCtx);
+        showView('view-change-password');
+        return;
+      }
+      await proceedAfterAuth();
+    });
+
+    // ── VIEW: Login ──────────────────────────────────────────────
+    const btnSignin  = document.getElementById('btn-signin');
+    const btnGoogle  = document.getElementById('btn-google');
+    const empIdInput = document.getElementById('f-emp-id');
+    const pwInput    = document.getElementById('f-password');
+
+    // Allow Enter key in password field to submit
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnSignin.click(); });
+    empIdInput.addEventListener('keydown', e => { if (e.key === 'Enter') pwInput.focus(); });
+
+    // Auto-format the Employee ID as DD-T-NNN-CC (2-1-3-2 digits) while typing.
+    // Digits-only entry (12345678) and hyphenated entry (12-3-456-78) both resolve to
+    // the same display; login is hyphen-tolerant server-side, so either way works.
+    empIdInput.addEventListener('input', () => {
+      const d = empIdInput.value.replace(/\D/g, '').slice(0, 8);
+      let out = d.slice(0, 2);
+      if (d.length > 2) out += '-' + d.slice(2, 3);
+      if (d.length > 3) out += '-' + d.slice(3, 6);
+      if (d.length > 6) out += '-' + d.slice(6, 8);
+      empIdInput.value = out;
+    });
+
+    // Numbers only — block typed letters/symbols (incl. a literal hyphen; the
+    // auto-format above inserts hyphens for you). Paste is intentionally NOT blocked
+    // here so a pasted "12-3-456-78" still works — the input handler strips it clean.
+    empIdInput.addEventListener('beforeinput', e => {
+      if (e.inputType === 'insertText' && e.data && /\D/.test(e.data)) e.preventDefault();
+    });
+
+    btnSignin.addEventListener('click', async () => {
+      clearErr('login-error');
+      const employee_id = empIdInput.value.trim();
+      const password    = pwInput.value;
+      if (!employee_id || !password) {
+        showErr('login-error', 'Please enter your Employee ID and password.');
+        return;
+      }
+
+      btnSignin.disabled = true;
+      btnSignin.textContent = 'Signing in…';
+
+      try {
+        const res = await fetch(`${EDGE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.session) {
+          showErr('login-error', data.error || 'Invalid Employee ID or password.');
+          return;
+        }
+
+        // Set the session in the Supabase client
+        await supabase.auth.setSession({
+          access_token:  data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+
+        // Check if forced password change is required (server sends just the flag)
+        if (data.force_password_change) {
+          _pwCtx = { employeeId: employee_id };
+          renderPwFeedback(_pwFeedback, '', _pwCtx);
+          showView('view-change-password');
+          return;
+        }
+
+        await proceedAfterAuth();
+      } catch {
+        showErr('login-error', 'Connection error. Please try again.');
+      } finally {
+        btnSignin.disabled = false;
+        btnSignin.textContent = 'Sign in';
       }
     });
 
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      label.textContent = 'Redirecting';
-      label.classList.add('loading-dots');
-      errEl.classList.remove('visible');
+    btnGoogle.addEventListener('click', async () => {
+      btnGoogle.disabled = true;
       try {
         await signInWithGoogle();
-        // Browser will redirect; spinner stays until redirect
       } catch (err) {
+        btnGoogle.disabled = false;
+        showErr('login-error', err.message || 'Google sign-in failed.');
+      }
+    });
+
+    // ── VIEW: Change password ────────────────────────────────────
+    // Context for the "not your ID/email/name" rule; populated when this view opens.
+    let _pwCtx = {};
+    const _newPwInput = document.getElementById('f-new-password');
+    const _pwFeedback = document.getElementById('pw-feedback');
+    _newPwInput.addEventListener('input', () => renderPwFeedback(_pwFeedback, _newPwInput.value, _pwCtx));
+
+    document.getElementById('btn-change-password').addEventListener('click', async () => {
+      clearErr('change-error');
+      const newPw  = _newPwInput.value;
+      const confPw = document.getElementById('f-confirm-password').value;
+
+      if (!checkPassword(newPw, _pwCtx).allMet) {
+        showErr('change-error', 'Your password doesn’t meet all the requirements listed below.');
+        renderPwFeedback(_pwFeedback, newPw, _pwCtx);
+        return;
+      }
+      if (newPw !== confPw) {
+        showErr('change-error', 'Passwords do not match.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-change-password');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: newPw,
+          data: { force_password_change: false },
+        });
+
+        if (error) {
+          showErr('change-error', error.message);
+          return;
+        }
+
+        await proceedAfterAuth();
+      } catch {
+        showErr('change-error', 'Failed to update password. Please try again.');
+      } finally {
         btn.disabled = false;
-        label.textContent = 'Continue with Google';
-        label.classList.remove('loading-dots');
-        errEl.textContent = err.message || 'Sign-in failed. Please try again.';
-        errEl.classList.add('visible');
+        btn.textContent = 'Set password & continue';
+      }
+    });
+
+    // ── TOTP enrollment + challenge ───────────────────────────────
+    let _totpFactorId      = null;  // pending enrollment factor
+    let _challengeFactorId = null;  // verified factor for challenge flow
+
+    async function proceedAfterAuth() {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+      if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
+        // Verified factor exists — need challenge before entering app
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const factor = factors?.totp?.find(f => f.status === 'verified');
+        if (!factor) { window.location.href = 'app.html#calendar'; return; }
+        _challengeFactorId = factor.id;
+        showView('view-totp-challenge');
+        document.getElementById('f-challenge-code').focus();
+        return;
+      }
+
+      // No verified factor — start enrollment. A prior "Skip" may have left an
+      // unverified factor behind (if its cleanup unenroll failed), which makes a
+      // fresh enroll error out. Clean up stale unverified factors and retry once.
+      try {
+        let enrollData = await tryEnrollTotp();
+        if (!enrollData) {
+          await clearUnverifiedTotpFactors();
+          enrollData = await tryEnrollTotp();
+        }
+        if (!enrollData) { window.location.href = 'app.html#calendar'; return; }
+
+        _totpFactorId = enrollData.id;
+        document.getElementById('totp-qr-img').src = enrollData.totp.qr_code;
+        document.getElementById('totp-secret').textContent = enrollData.totp.secret;
+        showView('view-totp');
+      } catch {
+        window.location.href = 'app.html#calendar';
+      }
+    }
+
+    async function tryEnrollTotp() {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        issuer: 'Hubble WMS',
+        friendlyName: 'Authenticator',
+      });
+      return error ? null : data;
+    }
+
+    // Remove any leftover unverified TOTP factors (e.g. an enrollment that was
+    // shown then skipped, where the skip-time unenroll failed) so a fresh
+    // enroll won't collide with them.
+    async function clearUnverifiedTotpFactors() {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      for (const f of (factors?.totp ?? [])) {
+        if (f.status === 'unverified') {
+          await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+        }
+      }
+    }
+
+    document.getElementById('btn-verify-totp').addEventListener('click', async () => {
+      clearErr('totp-error');
+      const code = document.getElementById('f-totp-code').value.trim();
+      if (code.length !== 6) {
+        showErr('totp-error', 'Enter the 6-digit code from your authenticator app.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-verify-totp');
+      btn.disabled = true;
+      btn.textContent = 'Verifying…';
+
+      try {
+        // Challenge first, then verify
+        const { data: challengeData, error: challErr } =
+          await supabase.auth.mfa.challenge({ factorId: _totpFactorId });
+        if (challErr) throw challErr;
+
+        const { error: verifyErr } = await supabase.auth.mfa.verify({
+          factorId:    _totpFactorId,
+          challengeId: challengeData.id,
+          code,
+        });
+
+        if (verifyErr) {
+          showErr('totp-error', 'Incorrect code. Check your authenticator and try again.');
+          return;
+        }
+
+        window.location.href = 'app.html#calendar';
+      } catch (e) {
+        showErr('totp-error', e?.message || 'Verification failed. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify & continue';
+      }
+    });
+
+    document.getElementById('btn-skip-totp').addEventListener('click', async () => {
+      // Unenroll the pending factor so it doesn't linger, then proceed
+      if (_totpFactorId) {
+        await supabase.auth.mfa.unenroll({ factorId: _totpFactorId }).catch(() => {});
+      }
+      window.location.href = 'app.html#calendar';
+    });
+
+    // ── VIEW: TOTP challenge (return login) ──────────────────────
+    const challengeCodeInput = document.getElementById('f-challenge-code');
+    challengeCodeInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btn-verify-challenge').click();
+    });
+
+    document.getElementById('btn-verify-challenge').addEventListener('click', async () => {
+      clearErr('challenge-error');
+      const code = challengeCodeInput.value.trim();
+      if (code.length !== 6) {
+        showErr('challenge-error', 'Enter the 6-digit code from your authenticator app.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-verify-challenge');
+      btn.disabled = true;
+      btn.textContent = 'Verifying…';
+
+      try {
+        const { data: challengeData, error: challErr } =
+          await supabase.auth.mfa.challenge({ factorId: _challengeFactorId });
+        if (challErr) throw challErr;
+
+        const { error: verifyErr } = await supabase.auth.mfa.verify({
+          factorId:    _challengeFactorId,
+          challengeId: challengeData.id,
+          code,
+        });
+
+        if (verifyErr) {
+          showErr('challenge-error', 'Incorrect code. Check your authenticator and try again.');
+          return;
+        }
+
+        window.location.href = 'app.html#calendar';
+      } catch (e) {
+        showErr('challenge-error', e?.message || 'Verification failed. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify & continue';
       }
     });
   </script>

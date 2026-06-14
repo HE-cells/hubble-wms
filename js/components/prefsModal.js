@@ -3,6 +3,7 @@
 
 import { updateProfile }  from '../api/users.js';
 import { setFormatPrefs } from '../format.js';
+import { supabase }       from '../config.js';
 
 const ROLE_LABELS = { owner:'Owner', admin:'Admin', manager:'Manager', member:'Member', client:'Client' };
 
@@ -25,6 +26,7 @@ export function openPrefsModal(profile) {
           <button class="tab-btn active" data-tab="general">General</button>
           <button class="tab-btn" data-tab="timesheet">Timesheet</button>
           <button class="tab-btn" data-tab="format">Format</button>
+          <button class="tab-btn" data-tab="security">Security</button>
           <button class="tab-btn" data-tab="apps">Apps</button>
         </div>
 
@@ -102,6 +104,30 @@ export function openPrefsModal(profile) {
             </div>
           </div>
 
+          <!-- Security tab -->
+          <div class="tab-panel" id="tab-security">
+            <div style="font-size:var(--font-xs);color:var(--text-muted);text-transform:uppercase;
+                        letter-spacing:1px;font-weight:600;margin-bottom:var(--sp-3);">Change password</div>
+            <div class="form-group">
+              <label>New password</label>
+              <input type="password" id="sec-new-pw" placeholder="At least 8 characters" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label>Confirm new password</label>
+              <input type="password" id="sec-confirm-pw" placeholder="Repeat new password" autocomplete="new-password">
+            </div>
+            <button class="btn btn-primary" id="sec-change-pw-btn" style="width:auto;">Update password</button>
+            <div id="sec-pw-msg" style="font-size:var(--font-sm);margin-top:var(--sp-2);"></div>
+
+            <div style="height:1px;background:var(--border);margin:var(--sp-5) 0;"></div>
+
+            <div style="font-size:var(--font-xs);color:var(--text-muted);text-transform:uppercase;
+                        letter-spacing:1px;font-weight:600;margin-bottom:var(--sp-3);">Two-factor authentication</div>
+            <div id="sec-2fa-status" style="color:var(--text-muted);font-size:var(--font-sm);margin-bottom:var(--sp-3);">Checking…</div>
+            <div id="sec-2fa-controls"></div>
+            <div id="sec-2fa-msg" style="font-size:var(--font-sm);margin-top:var(--sp-2);"></div>
+          </div>
+
           <!-- Apps tab (placeholder) -->
           <div class="tab-panel" id="tab-apps">
             <div class="empty-state" style="padding:var(--sp-6) 0;">
@@ -131,7 +157,7 @@ export function openPrefsModal(profile) {
   };
 
   // Only the Format tab has editable fields → SAVE; all others → OK (just close).
-  const TAB_IS_EDITABLE = { general: false, timesheet: false, format: true, apps: false };
+  const TAB_IS_EDITABLE = { general: false, timesheet: false, format: true, security: false, apps: false };
 
   function _updateSaveBtn(tab) {
     const btn = document.getElementById('prefs-save');
@@ -153,8 +179,137 @@ export function openPrefsModal(profile) {
       btn.classList.add('active');
       document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
       _updateSaveBtn(btn.dataset.tab);
+      if (btn.dataset.tab === 'security') _render2fa();
     });
   });
+
+  // ── Security tab: change password + 2FA enable/disable ───────
+  document.getElementById('sec-change-pw-btn').onclick = _changePassword;
+
+  async function _changePassword() {
+    const msg = document.getElementById('sec-pw-msg');
+    const np  = document.getElementById('sec-new-pw').value;
+    const cp  = document.getElementById('sec-confirm-pw').value;
+    msg.textContent = '';
+    if (np.length < 8)  { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Password must be at least 8 characters.'; return; }
+    if (np !== cp)      { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Passwords do not match.'; return; }
+    const btn = document.getElementById('sec-change-pw-btn');
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      const { error } = await supabase.auth.updateUser({ password: np, data: { force_password_change: false } });
+      if (error) throw error;
+      msg.style.color = 'var(--success,#66bb6a)'; msg.textContent = 'Password updated.';
+      window.showToast?.('Password updated', 'success');
+      document.getElementById('sec-new-pw').value = '';
+      document.getElementById('sec-confirm-pw').value = '';
+    } catch (e) {
+      msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = e?.message || 'Could not update password.';
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+
+  // Render current 2FA state → Enable or Disable control.
+  async function _render2fa() {
+    const statusEl = document.getElementById('sec-2fa-status');
+    const ctrl     = document.getElementById('sec-2fa-controls');
+    if (!statusEl || !ctrl) return;
+    statusEl.textContent = 'Checking…'; ctrl.innerHTML = '';
+    let verified = false;
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      verified = (data?.totp || []).some(f => f.status === 'verified');
+    } catch { /* show as off */ }
+    if (verified) {
+      statusEl.innerHTML = '🔒 Two-factor authentication is <strong style="color:var(--success,#66bb6a)">enabled</strong>.';
+      ctrl.innerHTML = `<button class="btn btn-ghost" id="sec-2fa-disable" style="width:auto;">Disable 2FA</button>`;
+      document.getElementById('sec-2fa-disable').onclick = _disable2fa;
+    } else {
+      statusEl.innerHTML = 'Two-factor authentication is <strong>off</strong>. Add an authenticator app for extra security.';
+      ctrl.innerHTML = `<button class="btn btn-primary" id="sec-2fa-enable" style="width:auto;">Enable 2FA</button>`;
+      document.getElementById('sec-2fa-enable').onclick = _enable2fa;
+    }
+  }
+
+  async function _enable2fa() {
+    const ctrl = document.getElementById('sec-2fa-controls');
+    const msg  = document.getElementById('sec-2fa-msg');
+    msg.textContent = '';
+    ctrl.innerHTML = `<div style="color:var(--text-muted);font-size:var(--font-sm);">Loading…</div>`;
+    // Clear any stale unverified factors so enroll doesn't collide.
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      for (const f of (data?.all || [])) {
+        if (f.factor_type === 'totp' && f.status === 'unverified') {
+          await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+        }
+      }
+    } catch { /* ignore */ }
+    let enrollData;
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'Hubble WMS' });
+      if (error) throw error;
+      enrollData = data;
+    } catch (e) {
+      msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = e?.message || 'Could not start enrollment.';
+      _render2fa(); return;
+    }
+    const factorId = enrollData.id;
+    ctrl.innerHTML = `
+      <div style="text-align:center;margin:var(--sp-3) 0;">
+        <img id="sec-2fa-qr" alt="2FA QR code"
+             style="background:#fff;padding:12px;border-radius:8px;border:2px solid var(--border);width:200px;height:200px;">
+        <div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:var(--sp-2);">Can't scan? Enter this key manually:</div>
+        <div style="font-family:monospace;font-size:var(--font-sm);color:var(--text-primary);letter-spacing:1px;
+                    background:var(--bg-input,#1e2329);border:1px solid var(--border);border-radius:4px;padding:8px 10px;
+                    word-break:break-all;margin-top:4px;">${_esc(enrollData.totp.secret)}</div>
+      </div>
+      <div class="form-group">
+        <label>Verification code</label>
+        <input type="text" id="sec-2fa-code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+      </div>
+      <button class="btn btn-primary" id="sec-2fa-verify" style="width:auto;">Verify &amp; enable</button>
+      <button class="btn btn-ghost" id="sec-2fa-cancel" style="width:auto;">Cancel</button>`;
+    // Set the QR via the DOM property — Supabase's qr_code is an SVG data-URI whose
+    // double-quotes would break the HTML attribute if interpolated into innerHTML
+    // (it leaks the rest of the tag as visible text). Property assignment is quote-safe.
+    document.getElementById('sec-2fa-qr').src = enrollData.totp.qr_code;
+    document.getElementById('sec-2fa-cancel').onclick = async () => {
+      await supabase.auth.mfa.unenroll({ factorId }).catch(() => {});
+      msg.textContent = ''; _render2fa();
+    };
+    document.getElementById('sec-2fa-verify').onclick = async () => {
+      const code = document.getElementById('sec-2fa-code').value.trim();
+      if (code.length !== 6) { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Enter the 6-digit code.'; return; }
+      try {
+        const { data: ch, error: ce } = await supabase.auth.mfa.challenge({ factorId });
+        if (ce) throw ce;
+        const { error: ve } = await supabase.auth.mfa.verify({ factorId, challengeId: ch.id, code });
+        if (ve) { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Incorrect code. Try again.'; return; }
+        msg.style.color = 'var(--success,#66bb6a)'; msg.textContent = 'Two-factor authentication enabled.';
+        window.showToast?.('2FA enabled', 'success');
+        _render2fa();
+      } catch (e) {
+        msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = e?.message || 'Verification failed.';
+      }
+    };
+  }
+
+  async function _disable2fa() {
+    const msg = document.getElementById('sec-2fa-msg');
+    msg.textContent = '';
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      for (const f of (data?.totp || [])) {
+        await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+      }
+      msg.style.color = 'var(--text-muted)'; msg.textContent = 'Two-factor authentication disabled. You can re-enable it anytime.';
+      window.showToast?.('2FA disabled', 'success');
+      _render2fa();
+    } catch (e) {
+      msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = e?.message || 'Could not disable 2FA.';
+    }
+  }
 
   // ── SAVE handler (Format tab only) ───────────────────────────
   async function saveHandler() {

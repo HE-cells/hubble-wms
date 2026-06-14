@@ -1,6 +1,6 @@
 // js/pages/employees.js — Employee Database (M3) admin page
 
-import { isAdmin } from '../auth.js';
+import { isAdmin, getSession } from '../auth.js';
 import {
   getDepartments, getEmploymentTypes,
   getEmployees, createEmployee, updateEmployee, archiveEmployee,
@@ -621,9 +621,30 @@ function _renderModal(isEdit, admin) {
 
         </div><!-- /.modal-body -->
 
-        <div class="modal-footer">
-          <button class="btn btn-ghost" id="em-modal-cancel">Cancel</button>
-          <button class="btn btn-primary" id="em-modal-save">${isEdit ? 'SAVE' : 'CREATE'}</button>
+        <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:var(--sp-2)">
+          <div style="display:flex;gap:var(--sp-2);">
+            ${admin && isEdit && !emp.linked_user
+              ? `<button class="btn btn-sm" id="em-provision-btn"
+                   style="background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:var(--font-sm);cursor:pointer;">
+                   Provision Account
+                 </button>`
+              : ''}
+            ${admin && isEdit && emp.user_id
+              ? `<button class="btn btn-ghost btn-sm" id="em-reset-pwd-btn" style="color:#ffb74d;border-color:#ffb74d;">
+                   Reset Password
+                 </button>`
+              : ''}
+          </div>
+          <div style="display:flex;gap:var(--sp-2);">
+            <button class="btn btn-ghost" id="em-modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="em-modal-save">${isEdit ? 'SAVE' : 'CREATE'}</button>
+          </div>
+        </div>
+        <div id="em-credential-box" style="display:none;padding:10px 20px 14px;
+             background:rgba(3,169,244,0.08);border-top:1px solid rgba(3,169,244,0.3);
+             font-size:var(--font-sm);line-height:1.7;">
+          <div id="em-credential-text"></div>
+          <button class="btn btn-ghost btn-sm" id="em-copy-cred" style="margin-top:6px;">Copy credentials</button>
         </div>
       </div>
     </div>`;
@@ -704,6 +725,88 @@ function _renderModal(isEdit, admin) {
       } catch (err) {
         window.showToast?.(err.message, 'error');
         btn.disabled = false;
+      }
+    });
+  }
+
+  // ── Provision account (admin, edit mode, no linked user) ────
+  if (admin && isEdit) {
+    const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
+
+    mount.querySelector('#em-provision-btn')?.addEventListener('click', async () => {
+      const btn = mount.querySelector('#em-provision-btn');
+      btn.disabled = true;
+      btn.textContent = 'Provisioning…';
+      try {
+        const token = getSession()?.access_token;
+        const res = await fetch(`${EDGE}/provision-users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ employee_ids: [_modalEmployee.employee_id] }),
+        });
+        const data = await res.json();
+        const result = data.provisioned?.[0];
+        if (!res.ok || !result) throw new Error(data.error || 'Provision failed');
+        if (result.error) throw new Error(result.error);
+
+        const credText = `Employee ID: ${result.employee_id}\nTemp password: ${result.temp_password}`;
+        const box  = mount.querySelector('#em-credential-box');
+        const text = mount.querySelector('#em-credential-text');
+        text.innerHTML = `<strong>Account created.</strong> Share these credentials privately:<br>
+          <span style="font-family:monospace">Employee ID: ${_esc(result.employee_id)}</span><br>
+          <span style="font-family:monospace">Temp password: ${_esc(result.temp_password)}</span><br>
+          <span style="color:var(--warning);font-size:11px">⚠ Employee must change password on first login</span>`;
+        mount.querySelector('#em-copy-cred').onclick = () => {
+          navigator.clipboard.writeText(credText);
+          window.showToast?.('Credentials copied', 'success');
+        };
+        box.style.display = '';
+
+        mount.querySelector('#em-link-status').innerHTML =
+          `<span style="color:var(--accent)">✓ Account provisioned</span> — ${_esc(result.email)}`;
+        btn.style.display = 'none';
+        window.showToast?.('Account provisioned', 'success');
+      } catch (err) {
+        window.showToast?.(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Provision Account';
+      }
+    });
+
+    // ── Reset password (admin, edit mode, has linked user) ──────
+    mount.querySelector('#em-reset-pwd-btn')?.addEventListener('click', async () => {
+      if (!confirm(`Reset password for ${_modalEmployee.full_name}? A new temporary password will be generated.`)) return;
+      const btn = mount.querySelector('#em-reset-pwd-btn');
+      btn.disabled = true;
+      btn.textContent = 'Resetting…';
+      try {
+        const token = getSession()?.access_token;
+        const res = await fetch(`${EDGE}/admin-reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ target_user_id: _modalEmployee.user_id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Reset failed');
+
+        const credText = `Employee ID: ${_modalEmployee.employee_id}\nNew password: ${data.new_password}`;
+        const box  = mount.querySelector('#em-credential-box');
+        const text = mount.querySelector('#em-credential-text');
+        text.innerHTML = `<strong>Password reset.</strong> Share this privately:<br>
+          <span style="font-family:monospace">Employee ID: ${_esc(_modalEmployee.employee_id)}</span><br>
+          <span style="font-family:monospace">New password: ${_esc(data.new_password)}</span><br>
+          <span style="color:var(--warning);font-size:11px">⚠ Employee must change password on next login</span>`;
+        mount.querySelector('#em-copy-cred').onclick = () => {
+          navigator.clipboard.writeText(credText);
+          window.showToast?.('Credentials copied', 'success');
+        };
+        box.style.display = '';
+        window.showToast?.('Password reset — share the new password with the employee', 'success');
+      } catch (err) {
+        window.showToast?.(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reset Password';
       }
     });
   }

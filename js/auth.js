@@ -137,12 +137,25 @@ export async function requireAuth() {
 }
 
 /**
+ * Check whether the current session requires a forced password change or an
+ * MFA challenge (aal1 session with a verified TOTP factor).
+ * Call after loadSession() so _session is populated.
+ * @returns {{ needsPasswordChange: boolean, needsMfa: boolean }}
+ */
+export async function getAuthGate() {
+  const needsPasswordChange = !!_session?.user?.user_metadata?.force_password_change;
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const needsMfa = aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2';
+  return { needsPasswordChange, needsMfa };
+}
+
+/**
  * Redirect with an error message if the user doesn't have the required role.
  */
 export function requireRole(minRole) {
   if (!hasRole(minRole)) {
     console.warn(`Access denied: requires ${minRole}`);
-    window.location.hash = '#tracker';
+    window.location.hash = '#calendar';
     return false;
   }
   return true;
