@@ -4,6 +4,7 @@
 import { updateProfile }  from '../api/users.js';
 import { setFormatPrefs } from '../format.js';
 import { supabase }       from '../config.js';
+import { checkPassword, renderPwFeedback } from '../passwordPolicy.js';
 
 const ROLE_LABELS = { owner:'Owner', admin:'Admin', manager:'Manager', member:'Member', client:'Client' };
 
@@ -110,8 +111,9 @@ export function openPrefsModal(profile) {
                         letter-spacing:1px;font-weight:600;margin-bottom:var(--sp-3);">Change password</div>
             <div class="form-group">
               <label>New password</label>
-              <input type="password" id="sec-new-pw" placeholder="At least 8 characters" autocomplete="new-password">
+              <input type="password" id="sec-new-pw" placeholder="At least 12 characters" autocomplete="new-password">
             </div>
+            <div id="sec-pw-feedback" style="margin:-2px 0 12px;"></div>
             <div class="form-group">
               <label>Confirm new password</label>
               <input type="password" id="sec-confirm-pw" placeholder="Repeat new password" autocomplete="new-password">
@@ -185,13 +187,22 @@ export function openPrefsModal(profile) {
 
   // ── Security tab: change password + 2FA enable/disable ───────
   document.getElementById('sec-change-pw-btn').onclick = _changePassword;
+  const _secNewPw = document.getElementById('sec-new-pw');
+  const _secPwFb  = document.getElementById('sec-pw-feedback');
+  const _secPwCtx = { email: profile.email, name: profile.name };
+  _secNewPw.addEventListener('input', () => renderPwFeedback(_secPwFb, _secNewPw.value, _secPwCtx));
 
   async function _changePassword() {
     const msg = document.getElementById('sec-pw-msg');
     const np  = document.getElementById('sec-new-pw').value;
     const cp  = document.getElementById('sec-confirm-pw').value;
     msg.textContent = '';
-    if (np.length < 8)  { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Password must be at least 8 characters.'; return; }
+    if (!checkPassword(np, _secPwCtx).allMet) {
+      msg.style.color = 'var(--danger,#ef5350)';
+      msg.textContent = 'Password doesn’t meet all the requirements below.';
+      renderPwFeedback(_secPwFb, np, _secPwCtx);
+      return;
+    }
     if (np !== cp)      { msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = 'Passwords do not match.'; return; }
     const btn = document.getElementById('sec-change-pw-btn');
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Updating…';
