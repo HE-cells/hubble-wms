@@ -632,6 +632,9 @@ function _renderModal(isEdit, admin) {
             ${admin && isEdit && emp.user_id
               ? `<button class="btn btn-ghost btn-sm" id="em-reset-pwd-btn" style="color:#ffb74d;border-color:#ffb74d;">
                    Reset Password
+                 </button>
+                 <button class="btn btn-ghost btn-sm" id="em-clear-mfa-btn" style="color:#ef9a9a;border-color:#ef9a9a;">
+                   Clear 2FA
                  </button>`
               : ''}
           </div>
@@ -807,6 +810,32 @@ function _renderModal(isEdit, admin) {
       } finally {
         btn.disabled = false;
         btn.textContent = 'Reset Password';
+      }
+    });
+
+    // ── Clear 2FA (admin, edit mode, has linked user) ───────────
+    mount.querySelector('#em-clear-mfa-btn')?.addEventListener('click', async () => {
+      if (!confirm(`Clear two-factor authentication for ${_modalEmployee.full_name}? They'll be able to sign in without a 2FA code and can re-enroll from Preferences.`)) return;
+      const btn = mount.querySelector('#em-clear-mfa-btn');
+      btn.disabled = true;
+      btn.textContent = 'Clearing…';
+      try {
+        const token = getSession()?.access_token;
+        const res = await fetch(`${EDGE}/admin-clear-mfa`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ target_user_id: _modalEmployee.user_id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Clear 2FA failed');
+        window.showToast?.(data.removed > 0
+          ? `2FA cleared (${data.removed} factor${data.removed > 1 ? 's' : ''} removed)`
+          : 'No 2FA factor was enrolled', 'success');
+      } catch (err) {
+        window.showToast?.(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Clear 2FA';
       }
     });
   }
