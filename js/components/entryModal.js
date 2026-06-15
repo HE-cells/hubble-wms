@@ -5,6 +5,7 @@ import { createEntry, updateEntry, deleteEntry } from '../api/timeEntries.js';
 import { getProjectsForEntry } from '../api/projects.js';
 import { getTags } from '../api/tags.js';
 import { formatTime, formatDuration, timesToHours, todayISO, esc, safeColor } from '../format.js';
+import { confirmModal } from './confirmModal.js';
 
 let _profile  = null;
 let _projects = [];
@@ -255,7 +256,7 @@ function _renderModal({ title, date, startTime, endTime, totalHours = '', projec
 
   // Delete
   mount.querySelector('#em-delete')?.addEventListener('click', async () => {
-    if (!confirm('Delete this time entry?')) return;
+    if (!await confirmModal({ title: 'Delete time entry', message: 'Delete this time entry?', confirmText: 'Delete', danger: true })) return;
     try {
       await deleteEntry(_editId);
       _closeModal();

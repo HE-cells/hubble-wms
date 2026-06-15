@@ -1,6 +1,7 @@
 // js/pages/holidays.js — Leave & Holiday Management (M2)
 
 import { isAdmin, isManager } from '../auth.js';
+import { confirmModal } from '../components/confirmModal.js';
 import { toISODate, todayISO } from '../format.js';
 import { empSelectHtml, wireEmpSelect, empOptionLabel } from '../components/empSelect.js';
 import { supabase }         from '../config.js';
@@ -776,7 +777,7 @@ function _renderHolidaysCalendar(body) {
       tr.querySelector('.hl-edit-holiday')?.addEventListener('click', () => _openHolidayModal(group));
       tr.querySelector('.hl-del-holiday')?.addEventListener('click', async () => {
         const label = group ? _fmtRange(group.startDate, group.endDate) : '';
-        if (!confirm(`Delete "${group?.name}" (${label})?`)) return;
+        if (!await confirmModal({ title: 'Delete holiday', message: `Delete "${group?.name}" (${label})?`, confirmText: 'Delete', danger: true })) return;
         try {
           await deletePublicHolidays(ids);
           window.showToast?.('Holiday deleted', 'success');
@@ -836,7 +837,7 @@ function _renderHolidaysList(body, parentWrap) {
       tr.querySelector('.hl-edit-holiday')?.addEventListener('click', () => _openHolidayModal(group));
       tr.querySelector('.hl-del-holiday')?.addEventListener('click', async () => {
         const label = group ? _fmtRange(group.startDate, group.endDate) : '';
-        if (!confirm(`Delete "${group?.name}" (${label})?`)) return;
+        if (!await confirmModal({ title: 'Delete holiday', message: `Delete "${group?.name}" (${label})?`, confirmText: 'Delete', danger: true })) return;
         try {
           await deletePublicHolidays(ids);
           window.showToast?.('Holiday deleted', 'success');
@@ -1119,7 +1120,7 @@ function _renderMyLeave(wrap) {
 
   wrap.querySelectorAll('.hl-cancel-req').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Cancel this leave request?')) return;
+      if (!await confirmModal({ title: 'Cancel leave request', message: 'Cancel this leave request?', confirmText: 'Cancel request', cancelText: 'Keep it', danger: true })) return;
       try {
         await cancelLeaveRequest(btn.dataset.id);
         _requests = _requests.map(r => r.id === btn.dataset.id ? { ...r, status: 'cancelled' } : r);
@@ -1210,7 +1211,7 @@ function _renderFlex(wrap) {
 
   wrap.querySelectorAll('.hl-cancel-flex').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Cancel this flex entry?')) return;
+      if (!await confirmModal({ title: 'Cancel flex entry', message: 'Cancel this flex entry?', confirmText: 'Cancel entry', cancelText: 'Keep it', danger: true })) return;
       try {
         await cancelFlexSwap(btn.dataset.id);
         _flexSwaps = _flexSwaps.map(s => s.id === btn.dataset.id ? { ...s, status: 'cancelled' } : s);

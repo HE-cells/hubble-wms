@@ -1,6 +1,7 @@
 // js/pages/requests.js — Notifications: own leave requests for all users, + admin request queues
 
 import { isAdmin } from '../auth.js';
+import { confirmModal } from '../components/confirmModal.js';
 import { supabase } from '../config.js';
 import {
   getPendingJobTitleChangeRequests,
@@ -456,7 +457,7 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
       const entityType = btn.dataset.entityType;
       const entityId   = btn.dataset.entityId;
       const entityName = btn.dataset.entityName;
-      if (!confirm(`Permanently delete ${entityType} "${entityName}"? This cannot be undone.`)) return;
+      if (!await confirmModal({ title: 'Delete', message: `Permanently delete ${entityType} "${entityName}"? This cannot be undone.`, confirmText: 'Delete', danger: true })) return;
       btn.disabled = true; btn.textContent = '…';
       try {
         const tableMap = { client: 'clients', project: 'projects', task: 'tasks' };

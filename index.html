@@ -265,6 +265,7 @@
           <label for="f-confirm-password">CONFIRM PASSWORD</label>
           <input type="password" id="f-confirm-password" placeholder="Repeat new password" autocomplete="new-password">
         </div>
+        <div id="pw-match" style="font-size:12px;min-height:16px;margin:-6px 0 14px;"></div>
 
         <button class="btn-primary" id="btn-change-password">Set password &amp; continue</button>
         <div class="login-error" id="change-error"></div>
@@ -413,11 +414,16 @@
           return;
         }
 
-        // Set the session in the Supabase client
-        await supabase.auth.setSession({
+        // Set the session in the Supabase client. Surface failures — don't proceed
+        // to the change-password view with no session (that later breaks updateUser).
+        const { error: _ssErr } = await supabase.auth.setSession({
           access_token:  data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
+        if (_ssErr) {
+          showErr('login-error', 'Could not establish your session: ' + (_ssErr.message || _ssErr));
+          return;
+        }
 
         // Check if forced password change is required (server sends just the flag)
         if (data.force_password_change) {
@@ -449,9 +455,23 @@
     // ── VIEW: Change password ────────────────────────────────────
     // Context for the "not your ID/email/name" rule; populated when this view opens.
     let _pwCtx = {};
-    const _newPwInput = document.getElementById('f-new-password');
-    const _pwFeedback = document.getElementById('pw-feedback');
-    _newPwInput.addEventListener('input', () => renderPwFeedback(_pwFeedback, _newPwInput.value, _pwCtx));
+    const _newPwInput  = document.getElementById('f-new-password');
+    const _confPwInput = document.getElementById('f-confirm-password');
+    const _pwFeedback  = document.getElementById('pw-feedback');
+    const _pwMatch     = document.getElementById('pw-match');
+    const _changeBtn   = document.getElementById('btn-change-password');
+    function _updatePwState() {
+      const newPw = _newPwInput.value, confPw = _confPwInput.value;
+      renderPwFeedback(_pwFeedback, newPw, _pwCtx);
+      const allMet = checkPassword(newPw, _pwCtx).allMet;
+      const match  = confPw.length > 0 && newPw === confPw;
+      _pwMatch.textContent = confPw.length === 0 ? '' : (match ? '✓ Passwords match' : '✗ Passwords don’t match');
+      _pwMatch.style.color = match ? '#9ccc65' : '#ef5350';
+      _changeBtn.disabled  = !(allMet && match);
+    }
+    _newPwInput.addEventListener('input', _updatePwState);
+    _confPwInput.addEventListener('input', _updatePwState);
+    _updatePwState();   // start disabled until the password is valid AND matches
 
     document.getElementById('btn-change-password').addEventListener('click', async () => {
       clearErr('change-error');
@@ -473,13 +493,34 @@
       btn.textContent = 'Saving…';
 
       try {
+        // Guard: a forced-change session can be silently dropped (e.g. a failed token
+        // refresh after an admin reset) → updateUser would throw "Auth session missing!".
+        // Detect it and route back to a clean sign-in instead of the raw error.
+        const { data: { session: _sess } } = await supabase.auth.getSession();
+        if (!_sess) {
+          showErr('change-error', 'Your session was lost — please sign in again with your temporary password.');
+          setTimeout(() => showView('view-login'), 1800);
+          return;
+        }
         const { error } = await supabase.auth.updateUser({
           password: newPw,
           data: { force_password_change: false },
         });
 
         if (error) {
-          showErr('change-error', error.message);
+          // A dead/invalidated session — e.g. the password was reset again
+          // elsewhere while this tab still held the old token — makes updateUser
+          // fail with an auth error. The flag then never clears and the user is
+          // trapped on this screen. Route auth failures to a clean sign-in
+          // (with the latest temp password) instead of dead-ending here.
+          const m = (error.message || '').toLowerCase();
+          if (error.status === 401 || error.status === 403 ||
+              /session|jwt|token|not authenticated|missing/.test(m)) {
+            showErr('change-error', 'Your session expired — please sign in again with your latest temporary password.');
+            setTimeout(() => showView('view-login'), 2000);
+          } else {
+            showErr('change-error', error.message);
+          }
           return;
         }
 

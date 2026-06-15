@@ -1,6 +1,7 @@
 // js/pages/employees.js — Employee Database (M3) admin page
 
 import { isAdmin, getSession } from '../auth.js';
+import { confirmModal } from '../components/confirmModal.js';
 import {
   getDepartments, getEmploymentTypes,
   getEmployees, createEmployee, updateEmployee, archiveEmployee,
@@ -9,6 +10,10 @@ import {
   getSkills, addSkill, removeSkill,
   findProfileByEmail, updateProfileName,
 } from '../api/employees.js';
+
+// Supabase Edge Functions base — admin actions (provision / reset / clear-mfa)
+// and the read-only account-activation-status feed for the Account Status tab.
+const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -82,6 +87,7 @@ let _empTypes    = [];
 let _statusFilter = 'active';
 let _deptFilter   = '';
 let _search       = '';
+let _activationMap = null;   // user_id → { force_password_change, last_sign_in_at } — lazy-loaded for the Account Status tab
 
 // State for the currently-open modal
 let _modalEmployee = null;
@@ -110,27 +116,41 @@ export async function render(profile) {
   `;
 
   document.getElementById('content').innerHTML = `
-    <div class="filter-bar">
-      <select id="em-status">
-        <option value="active">Active</option>
-        <option value="resigned">Resigned</option>
-        <option value="terminated">Terminated</option>
-        <option value="">All</option>
-      </select>
-      <select id="em-dept">
-        <option value="">All Departments</option>
-      </select>
-      <div class="search-input">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="search" id="em-search" placeholder="Search employees…">
+    <div class="tabs" id="em-tabs" style="border-bottom:1px solid var(--border);margin-bottom:var(--sp-4)">
+      <button class="tab-btn active" data-tab="directory">Directory</button>
+      ${admin ? `<button class="tab-btn" data-tab="account">Account Status</button>` : ''}
+    </div>
+
+    <div class="tab-panel active" id="em-panel-directory">
+      <div class="filter-bar">
+        <select id="em-status">
+          <option value="active">Active</option>
+          <option value="resigned">Resigned</option>
+          <option value="terminated">Terminated</option>
+          <option value="">All</option>
+        </select>
+        <select id="em-dept">
+          <option value="">All Departments</option>
+        </select>
+        <div class="search-input">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="search" id="em-search" placeholder="Search employees…">
+        </div>
+      </div>
+      <div id="em-table-wrap">
+        <div class="empty-state"><div class="empty-state-title">Loading…</div></div>
       </div>
     </div>
-    <div id="em-table-wrap">
-      <div class="empty-state"><div class="empty-state-title">Loading…</div></div>
-    </div>
+
+    ${admin ? `
+    <div class="tab-panel" id="em-panel-account">
+      <div id="em-account-wrap">
+        <div class="empty-state"><div class="empty-state-title">Loading…</div></div>
+      </div>
+    </div>` : ''}
   `;
 
   _wireControls(admin);
@@ -173,6 +193,19 @@ function _wireControls(admin) {
   content.querySelector('#em-search')?.addEventListener('input', e => {
     _search = e.target.value.trim().toLowerCase();
     _renderTable();
+  });
+
+  // Page-level tab switching (Directory ⇄ Account Status). The Account Status
+  // panel is admin-only and re-fetches on each open so it's fresh after a reset.
+  content.querySelectorAll('#em-tabs .tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tab = btn.dataset.tab;
+      content.querySelectorAll('#em-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      content.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('em-panel-' + tab)?.classList.add('active');
+      if (tab === 'account') await _loadAccountPanel();
+    });
   });
 }
 
@@ -279,6 +312,114 @@ function _renderRow(e, admin) {
         </div>
       </td>
     </tr>`;
+}
+
+// ── Account Status tab (admin) ────────────────────────────────
+
+// Fetch + render the activation panel. Re-runs on every tab open so the data
+// is fresh after a Reset / Provision done from the modal.
+async function _loadAccountPanel() {
+  const wrap = document.getElementById('em-account-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="empty-state"><div class="empty-state-title">Loading…</div></div>`;
+  const map = await _fetchActivationMap();
+  if (!map) {
+    wrap.innerHTML = `
+      <div class="empty-state" style="margin-top:40px">
+        <div class="empty-state-title">Couldn't load account status</div>
+        <div class="empty-state-sub">Check your connection and reopen this tab.</div>
+      </div>`;
+    return;                       // leave _activationMap untouched → retry on next open
+  }
+  _activationMap = map;
+  _renderAccountPanel();
+}
+
+// Returns { user_id: {force_password_change,...} } on success, or null on failure.
+async function _fetchActivationMap() {
+  try {
+    const token = getSession()?.access_token;
+    const res = await fetch(`${EDGE}/account-activation-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.accounts || {};
+  } catch {
+    return null;
+  }
+}
+
+// 'not_provisioned' | 'never_signed_in' | 'not_activated' | 'activated'
+function _activationState(e) {
+  if (!e.user_id) return 'not_provisioned';
+  const a = _activationMap?.[e.user_id];
+  if (!a || !a.force_password_change) return 'activated';   // absent from map → don't false-flag
+  return a.last_sign_in_at ? 'not_activated' : 'never_signed_in';
+}
+
+function _renderAccountPanel() {
+  const wrap = document.getElementById('em-account-wrap');
+  if (!wrap) return;
+
+  const META = {
+    never_signed_in: { label: 'Never signed in', cls: 'badge badge-rejected', rank: 0 },
+    not_activated:   { label: 'Not activated',   cls: 'badge badge-pending',  rank: 1 },
+    not_provisioned: { label: 'Not provisioned', cls: 'badge badge-pending',  rank: 2 },
+    activated:       { label: 'Activated',       cls: 'badge badge-member',   rank: 3 },
+  };
+
+  // Live roster only (active/pending); attention-first, then by name.
+  const list = _employees
+    .filter(e => e.status === 'active' || e.status === 'pending')
+    .map(e => ({ e, st: _activationState(e) }))
+    .sort((a, b) => (META[a.st].rank - META[b.st].rank) ||
+                    (a.e.full_name || '').localeCompare(b.e.full_name || ''));
+
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="margin-top:40px">
+      <div class="empty-state-title">No active accounts</div></div>`;
+    return;
+  }
+
+  const pending = list.filter(x => x.st !== 'activated').length;
+  const signIn = a => (a && a.last_sign_in_at)
+    ? _esc(a.last_sign_in_at.slice(0, 10))
+    : '<span class="text-muted">never</span>';
+
+  wrap.innerHTML = `
+    <div class="text-muted" style="margin-bottom:var(--sp-3);font-size:var(--font-sm)">
+      ${pending === 0
+        ? '✓ All active accounts have set their password.'
+        : `<strong style="color:var(--text-primary)">${pending}</strong> account${pending === 1 ? '' : 's'} awaiting activation — click a row to provision or reset.`}
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Employee ID</th><th>Department</th><th>Account</th><th>Last sign-in</th></tr>
+        </thead>
+        <tbody>
+          ${list.map(({ e, st }) => {
+            const m = META[st];
+            const a = _activationMap?.[e.user_id];
+            return `
+            <tr data-id="${_attr(e.id)}" style="cursor:pointer">
+              <td style="font-weight:500">${_esc(e.full_name || '—')}</td>
+              <td><code style="font-family:var(--mono,monospace);font-size:var(--font-xs)">${_esc(e.employee_id || '—')}</code></td>
+              <td class="text-muted" style="font-size:var(--font-sm)">${_esc(e.department?.label || e.department_code || '—')}</td>
+              <td><span class="${m.cls}">${m.label}</span></td>
+              <td class="text-muted" style="font-size:var(--font-sm)">${signIn(a)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  wrap.querySelectorAll('tbody tr').forEach(tr => {
+    const emp = _employees.find(x => x.id === tr.dataset.id);
+    if (emp) tr.addEventListener('click', () => _openModal(emp));
+  });
 }
 
 // ── Create / Edit modal ───────────────────────────────────────
@@ -710,7 +851,7 @@ function _renderModal(isEdit, admin) {
     });
 
     mount.querySelector('#em-unlink-btn')?.addEventListener('click', async () => {
-      if (!confirm('Remove the account link? The employee will not be able to submit leave requests until re-linked.')) return;
+      if (!await confirmModal({ title: 'Remove account link', message: 'Remove the account link? The employee will not be able to submit leave requests until re-linked.', confirmText: 'Remove link', danger: true })) return;
       const btn = mount.querySelector('#em-unlink-btn');
       btn.disabled = true;
       try {
@@ -734,8 +875,6 @@ function _renderModal(isEdit, admin) {
 
   // ── Provision account (admin, edit mode, no linked user) ────
   if (admin && isEdit) {
-    const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
-
     mount.querySelector('#em-provision-btn')?.addEventListener('click', async () => {
       const btn = mount.querySelector('#em-provision-btn');
       btn.disabled = true;
@@ -778,7 +917,7 @@ function _renderModal(isEdit, admin) {
 
     // ── Reset password (admin, edit mode, has linked user) ──────
     mount.querySelector('#em-reset-pwd-btn')?.addEventListener('click', async () => {
-      if (!confirm(`Reset password for ${_modalEmployee.full_name}? A new temporary password will be generated.`)) return;
+      if (!await confirmModal({ title: 'Reset password', message: `Reset password for ${_modalEmployee.full_name}? A new temporary password will be generated.`, confirmText: 'Reset password', danger: true })) return;
       const btn = mount.querySelector('#em-reset-pwd-btn');
       btn.disabled = true;
       btn.textContent = 'Resetting…';
@@ -815,7 +954,7 @@ function _renderModal(isEdit, admin) {
 
     // ── Clear 2FA (admin, edit mode, has linked user) ───────────
     mount.querySelector('#em-clear-mfa-btn')?.addEventListener('click', async () => {
-      if (!confirm(`Clear two-factor authentication for ${_modalEmployee.full_name}? They'll be able to sign in without a 2FA code and can re-enroll from Preferences.`)) return;
+      if (!await confirmModal({ title: 'Clear 2FA', message: `Clear two-factor authentication for ${_modalEmployee.full_name}? They'll be able to sign in without a 2FA code and can re-enroll from Preferences.`, confirmText: 'Clear 2FA', danger: true })) return;
       const btn = mount.querySelector('#em-clear-mfa-btn');
       btn.disabled = true;
       btn.textContent = 'Clearing…';

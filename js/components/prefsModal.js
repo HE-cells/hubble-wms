@@ -118,6 +118,7 @@ export function openPrefsModal(profile) {
               <label>Confirm new password</label>
               <input type="password" id="sec-confirm-pw" placeholder="Repeat new password" autocomplete="new-password">
             </div>
+            <div id="sec-pw-match" style="font-size:var(--font-sm);min-height:16px;margin:-6px 0 10px;"></div>
             <button class="btn btn-primary" id="sec-change-pw-btn" style="width:auto;">Update password</button>
             <div id="sec-pw-msg" style="font-size:var(--font-sm);margin-top:var(--sp-2);"></div>
 
@@ -187,10 +188,24 @@ export function openPrefsModal(profile) {
 
   // ── Security tab: change password + 2FA enable/disable ───────
   document.getElementById('sec-change-pw-btn').onclick = _changePassword;
-  const _secNewPw = document.getElementById('sec-new-pw');
-  const _secPwFb  = document.getElementById('sec-pw-feedback');
+  const _secNewPw     = document.getElementById('sec-new-pw');
+  const _secConfirmPw = document.getElementById('sec-confirm-pw');
+  const _secPwFb      = document.getElementById('sec-pw-feedback');
+  const _secPwMatch   = document.getElementById('sec-pw-match');
+  const _secChangeBtn = document.getElementById('sec-change-pw-btn');
   const _secPwCtx = { email: profile.email, name: profile.name };
-  _secNewPw.addEventListener('input', () => renderPwFeedback(_secPwFb, _secNewPw.value, _secPwCtx));
+  function _updateSecPwState() {
+    const np = _secNewPw.value, cp = _secConfirmPw.value;
+    renderPwFeedback(_secPwFb, np, _secPwCtx);
+    const allMet = checkPassword(np, _secPwCtx).allMet;
+    const match  = cp.length > 0 && np === cp;
+    _secPwMatch.textContent = cp.length === 0 ? '' : (match ? '✓ Passwords match' : '✗ Passwords don’t match');
+    _secPwMatch.style.color = match ? 'var(--success,#66bb6a)' : 'var(--danger,#ef5350)';
+    _secChangeBtn.disabled  = !(allMet && match);
+  }
+  _secNewPw.addEventListener('input', _updateSecPwState);
+  _secConfirmPw.addEventListener('input', _updateSecPwState);
+  _updateSecPwState();   // start disabled until valid AND matching
 
   async function _changePassword() {
     const msg = document.getElementById('sec-pw-msg');
@@ -213,6 +228,7 @@ export function openPrefsModal(profile) {
       window.showToast?.('Password updated', 'success');
       document.getElementById('sec-new-pw').value = '';
       document.getElementById('sec-confirm-pw').value = '';
+      _updateSecPwState();
     } catch (e) {
       msg.style.color = 'var(--danger,#ef5350)'; msg.textContent = e?.message || 'Could not update password.';
     } finally {
