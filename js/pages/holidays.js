@@ -184,8 +184,8 @@ export async function render(profile) {
   if (!_canApprove && _mainTab === 'teamleave') _mainTab = 'holidays';
 
   // Schedule range defaults; history defaults to empty (show all)
-  const _today  = new Date().toISOString().slice(0, 10);
-  const _plus30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const _today  = todayISO();
+  const _plus30 = toISODate(new Date(Date.now() + 30 * 86400000));
   _scheduleFrom = _today;
   _scheduleTo   = _plus30;
   _historyFrom  = '';
@@ -963,7 +963,7 @@ function _renderMyLeave(wrap) {
 
   const myEmpId = _myEmployee.id;
   const allMine = _requests.filter(r => r.employee_id === myEmpId);
-  const today   = new Date().toISOString().slice(0, 10);
+  const today   = todayISO();
 
   const visible     = _showPastLeave
     ? allMine
@@ -1144,14 +1144,14 @@ function _renderFlex(wrap) {
 
   const myEmpIdF   = _myEmployee?.id;
   const allMySwaps = myEmpIdF ? _flexSwaps.filter(s => s.employee_id === myEmpIdF) : [];
-  const todayF     = new Date().toISOString().slice(0, 10);
+  const todayF     = todayISO();
   const mySwaps    = _showPastFlex
     ? allMySwaps
     : allMySwaps.filter(s => s.status === 'pending' ||
         (s.substitute_date && s.substitute_date >= todayF) ||
         (s.valid_from && s.valid_from >= todayF));
   const hiddenFlexCount = allMySwaps.length - mySwaps.length;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   wrap.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:20px;">
@@ -1230,7 +1230,7 @@ function _renderFlex(wrap) {
 }
 
 function _renderFlexSwapForm(body, wrap) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   body.innerHTML = `
     <div style="max-width:540px;display:flex;flex-direction:column;gap:18px;margin-bottom:32px;">
       <div class="form-label" style="font-size:15px;font-weight:600;">Submit Flex Holiday Swap</div>
@@ -1294,7 +1294,7 @@ function _renderFlexSwapForm(body, wrap) {
 }
 
 function _renderWfhForm(body, wrap) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   body.innerHTML = `
     <div style="max-width:540px;display:flex;flex-direction:column;gap:18px;margin-bottom:32px;">
       <div class="form-label" style="font-size:15px;font-weight:600;">Submit Work From Home Request</div>
@@ -1331,7 +1331,7 @@ function _renderWfhForm(body, wrap) {
 // ── Tab: Team Leave (admin / manager) ────────────────────────
 
 function _renderTeamLeave(wrap) {
-  const today      = new Date().toISOString().slice(0, 10);
+  const today      = todayISO();
   const activeEmps = _employees.filter(e => e.status === 'active' || e.status === 'probation');
   const selEmp     = activeEmps.find(e => e.id === _teamLeaveEmpId);
   const empBals    = _teamLeaveEmpId ? _balances.filter(b => b.employee_id === _teamLeaveEmpId) : [];
@@ -1517,7 +1517,7 @@ function _renderTeamLeave(wrap) {
 // ── Tab: Team Flex (admin / manager) ─────────────────────────
 
 function _renderTeamFlex(wrap) {
-  const today      = new Date().toISOString().slice(0, 10);
+  const today      = todayISO();
   const activeEmps = _employees.filter(e => e.status === 'active' || e.status === 'probation');
   const selEmp  = activeEmps.find(e => e.id === _teamFlexEmpId);
   const empSwaps = _teamFlexEmpId ? _flexSwaps.filter(s => s.employee_id === _teamFlexEmpId) : [];

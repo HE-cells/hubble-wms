@@ -3,7 +3,7 @@
 import { isAdmin, isManager } from '../auth.js';
 import { supabase } from '../config.js';
 import { getEmployees } from '../api/employees.js';
-import { esc, attr, formatDate } from '../format.js';
+import { esc, attr, formatDate, todayISO } from '../format.js';
 import { empSelectHtml, wireEmpSelect } from '../components/empSelect.js';
 import {
   DOCUMENT_TYPE_LABELS, REQUIRED_DOCUMENT_FIELD_LABELS, EMPLOYEE_REQUESTABLE_TYPES,
@@ -572,7 +572,7 @@ function _renderGenerate(wrap) {
 function _customFieldsHtml(template) {
   if (!template) return '';
   const type = template.template_type;
-  const month = _customFields.month || new Date().toISOString().slice(0, 7);
+  const month = _customFields.month || todayISO().slice(0, 7);
   return `
     ${type === 'promotion_letter' ? `
       <label class="form-label">New Job Title

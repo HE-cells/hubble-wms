@@ -392,46 +392,12 @@ export async function submitSettlement(id, { actualItems, note }) {
   return data;
 }
 
-// Manager/admin approves settlement — posts a correcting cash_transactions entry.
-// diff > 0 → employee over-spent (post 'out'); diff < 0 → employee under-spent (post 'in' for return).
-export async function approveSettlement(id, actorId) {
-  const { data: trip, error: fetchErr } = await supabase
-    .from('travel_requests').select(TRIP_SELECT).eq('id', id).single();
-  if (fetchErr) throw fetchErr;
-
-  const advance = Number(trip.estimated_cost) || 0;
-  const actual  = Number(trip.settlement_actual_amount) || 0;
-  const diff    = Math.round((actual - advance) * 100) / 100;
-
-  if (diff !== 0) {
-    const { error: txnErr } = await supabase.from('cash_transactions').insert({
-      employee_id:          trip.employee_id,
-      txn_date:             new Date().toISOString().slice(0, 10),
-      direction:            diff > 0 ? 'out' : 'in',
-      amount:               Math.abs(diff),
-      currency:             trip.currency || 'THB',
-      project_id:           trip.project_id || null,
-      note:                 `Settlement ${diff > 0 ? 'additional claim' : 'return'} — ${trip.travel_ref || trip.destination}`,
-      status:               'approved',
-      source:               'travel_settlement',
-      source_ref:           trip.id,
-      finance_approved_by:  actorId,
-      finance_approved_at:  new Date().toISOString(),
-    });
-    if (txnErr) throw txnErr;
-  }
-
-  const { data, error } = await supabase
-    .from('travel_requests')
-    .update({
-      settlement_status:       'closed',
-      settlement_approved_by:  actorId,
-      settlement_approved_at:  new Date().toISOString(),
-      status:                  'completed',
-    })
-    .eq('id', id)
-    .select(TRIP_SELECT)
-    .single();
+// Admin approves settlement — atomic RPC posts the correcting cash_transactions
+// entry AND closes the trip in one transaction (M-SETTLE, migration 20260703).
+// The RPC is admin-guarded, computes the diff server-side, and is idempotent;
+// the actor comes from auth.uid() server-side, so no actorId arg is needed.
+export async function approveSettlement(id) {
+  const { data, error } = await supabase.rpc('approve_trip_settlement', { p_trip_id: id });
   if (error) throw error;
   return data;
 }

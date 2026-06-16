@@ -180,7 +180,7 @@ function _costItemsText(items) {
 // Deadline: the 14th, or the last workday before it if 14th is weekend/holiday.
 function _monthlyDeadline(year, month) {
   let d = new Date(year, month - 1, 14);
-  while (_isWeekend(d.toISOString().slice(0,10)) || _holidaySet.has(d.toISOString().slice(0,10))) {
+  while (_isWeekend(toISODate(d)) || _holidaySet.has(toISODate(d))) {
     d.setDate(d.getDate() - 1);
   }
   return d;
@@ -1254,7 +1254,7 @@ function _wireApprovals(wrap) {
   wrap.querySelectorAll('.settle-appr-btn').forEach(btn => btn.addEventListener('click', async () => {
     btn.disabled = true;
     try {
-      await approveSettlement(btn.dataset.id, _profile.id);
+      await approveSettlement(btn.dataset.id);
       window.showToast?.('Settlement approved — float entry posted.', 'success'); window.refreshExpenseBadge?.(); await _refreshPendingCount(); _updateApprovalsTabBadge(); _loadApprovals();
     } catch (e) { window.showToast?.(e.message, 'error'); btn.disabled = false; }
   }));
@@ -1993,7 +1993,7 @@ async function _renderMonthlyReport() {
       getRunningBalance(`${year}-${String(month).padStart(2,'0')}-00`).catch(() => ({ balance: 0 })),
     ]);
     // opening balance = balance up to the day before the 1st
-    const prevDay = new Date(year, month - 1, 0).toISOString().slice(0,10);
+    const prevDay = toISODate(new Date(year, month - 1, 0));
     const opening = (await getRunningBalance(prevDay).catch(() => ({ balance: 0 }))).balance;
 
     const approved = txns.filter(t => t.status === 'approved');
