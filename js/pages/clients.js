@@ -3,7 +3,10 @@
 // (NAME / ADDRESS / CURRENCY + row actions).
 
 import { getClients, createClient, updateClient, deleteClient } from '../api/clients.js';
-import { isAdmin } from '../auth.js';
+import { isAdmin, getSession } from '../auth.js';
+import { supabase } from '../config.js';
+
+const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
 
 const CURRENCIES = ['THB', 'USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AUD'];
 
@@ -147,6 +150,7 @@ function _renderTable() {
     const client = _clients.find(c => c.id === tr.dataset.id);
     if (!client) return;
     tr.querySelector('.act-edit')?.addEventListener('click', () => _openEditModal(client));
+    tr.querySelector('.act-logins')?.addEventListener('click', () => _openLoginsModal(client));
     tr.querySelector('.act-archive')?.addEventListener('click', () => _setActive(client, false));
     tr.querySelector('.act-restore')?.addEventListener('click', () => _setActive(client, true));
     tr.querySelector('.act-delete')?.addEventListener('click', () => _confirmDelete(client));
@@ -176,6 +180,16 @@ function _renderRow(c, admin) {
            </button>`)
     : '';
 
+  const loginsBtn = admin
+    ? `<button class="row-action-btn act-logins" title="Manage client logins">
+         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+           <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+         </svg>
+       </button>`
+    : '';
+
   const deleteBtn = admin
     ? `<button class="row-action-btn danger act-delete" title="Delete">
          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -200,6 +214,7 @@ function _renderRow(c, admin) {
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
+          ${loginsBtn}
           ${archiveBtn}
           ${deleteBtn}
         </div>
@@ -375,6 +390,102 @@ function _confirmDelete(client) {
     } catch (err) {
       // Surface the DB error (e.g. FK from projects) — keep the modal open.
       window.showToast?.(err.message, 'error');
+      btn.disabled = false;
+    }
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// CLIENT LOGINS (CLIENT-01) — admin provisions client-user accounts
+// ──────────────────────────────────────────────────────────────
+
+async function _openLoginsModal(client) {
+  const mount = document.getElementById('modal-mount');
+  mount.innerHTML = `
+    <div class="modal-backdrop" id="cl-lg-backdrop">
+      <div class="modal modal-md" id="cl-lg-modal">
+        <div class="modal-header">
+          <span class="modal-title">Client logins — ${_esc(client.name || '')}</span>
+          <button class="modal-close" id="cl-lg-close">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:var(--sp-3);">
+          <div id="cl-lg-list"><div class="text-muted">Loading…</div></div>
+          <div id="cl-lg-result"></div>
+          <div style="border-top:1px solid #3a444e; padding-top:var(--sp-3);">
+            <div style="font-weight:500; margin-bottom:8px;">Add a client login</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <input type="text"  id="cl-lg-name"  placeholder="Contact name (optional)">
+              <input type="email" id="cl-lg-email" placeholder="Contact email">
+              <button class="btn btn-primary" id="cl-lg-add" style="align-self:flex-start;">Create login</button>
+            </div>
+            <div class="text-muted" style="font-size:12px; margin-top:6px;">A temporary password and the client ID are shown once after creation.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="cl-lg-done">Close</button>
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => { mount.innerHTML = ''; };
+  mount.querySelector('#cl-lg-close').addEventListener('click', close);
+  mount.querySelector('#cl-lg-done').addEventListener('click', close);
+  mount.querySelector('#cl-lg-backdrop').addEventListener('click', e => {
+    if (e.target.id === 'cl-lg-backdrop') close();
+  });
+
+  const listEl = mount.querySelector('#cl-lg-list');
+  async function refreshList() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles').select('id, name, email, client_code')
+        .eq('role', 'client').eq('client_id', client.id).order('client_code');
+      if (error) throw error;
+      if (!data || data.length === 0) { listEl.innerHTML = `<div class="text-muted">No client logins yet.</div>`; return; }
+      listEl.innerHTML = `
+        <div class="table-wrapper"><table>
+          <thead><tr><th>Client ID</th><th>Name</th><th>Email</th></tr></thead>
+          <tbody>${data.map(u => `<tr><td>${_esc(u.client_code || '—')}</td><td>${_esc(u.name || '—')}</td><td>${_esc(u.email || '—')}</td></tr>`).join('')}</tbody>
+        </table></div>`;
+    } catch (err) {
+      listEl.innerHTML = `<div class="text-muted">Couldn't load logins: ${_esc(err.message)}</div>`;
+    }
+  }
+  refreshList();
+
+  mount.querySelector('#cl-lg-add').addEventListener('click', async () => {
+    const name     = mount.querySelector('#cl-lg-name').value.trim();
+    const email    = mount.querySelector('#cl-lg-email').value.trim();
+    const resultEl = mount.querySelector('#cl-lg-result');
+    if (!email) { window.showToast?.('Enter the contact email', 'error'); return; }
+
+    const btn = mount.querySelector('#cl-lg-add');
+    btn.disabled = true;
+    try {
+      const token = getSession()?.access_token;
+      const res = await fetch(`${EDGE}/provision-client`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ client_id: client.id, email, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Provision failed');
+
+      resultEl.innerHTML = `
+        <div class="card" style="background:#1e2329;">
+          <div style="font-weight:500; margin-bottom:4px;">Login created</div>
+          <div style="font-size:13px;">Client ID: <strong>${_esc(data.client_code || '—')}</strong></div>
+          <div style="font-size:13px;">Email: ${_esc(email)}</div>
+          <div style="font-size:13px;">Temporary password: <strong>${_esc(data.temp_password || '')}</strong></div>
+          <div class="text-muted" style="font-size:12px; margin-top:6px;">Copy these now — the password is shown only once.</div>
+        </div>`;
+      mount.querySelector('#cl-lg-name').value = '';
+      mount.querySelector('#cl-lg-email').value = '';
+      refreshList();
+      window.showToast?.('Client login created', 'success');
+    } catch (err) {
+      window.showToast?.(err.message, 'error');
+    } finally {
       btn.disabled = false;
     }
   });

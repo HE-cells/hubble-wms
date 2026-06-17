@@ -52,6 +52,11 @@
 
     .login-sub { color: #8b97a2; font-size: 13px; margin-bottom: 28px; }
 
+    /* ── employee/client toggle ── */
+    .login-toggle { display: flex; gap: 4px; margin-bottom: 20px; background: #1e2329; border: 1px solid #3a444e; border-radius: 6px; padding: 3px; }
+    .login-toggle-btn { flex: 1; padding: 7px 10px; background: transparent; color: #8b97a2; border: none; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
+    .login-toggle-btn.active { background: #03a9f4; color: #fff; }
+
     /* ── views ── */
     .view { display: none; }
     .view.active { display: block; }
@@ -227,10 +232,15 @@
       <!-- ── VIEW: Employee ID + Password login ── -->
       <div class="view active" id="view-login">
         <div class="login-heading">Sign in</div>
-        <div class="login-sub">Enter your Employee ID and password</div>
+        <div class="login-sub" id="login-sub-id">Enter your Employee ID and password</div>
+
+        <div class="login-toggle" id="login-toggle">
+          <button type="button" class="login-toggle-btn active" data-mode="employee">Employee</button>
+          <button type="button" class="login-toggle-btn" data-mode="client">Client</button>
+        </div>
 
         <div class="field">
-          <label for="f-emp-id">EMPLOYEE ID</label>
+          <label for="f-emp-id" id="lbl-id">EMPLOYEE ID</label>
           <input type="text" id="f-emp-id" placeholder="12-3-456-78" autocomplete="username" spellcheck="false" inputmode="numeric">
         </div>
         <div class="field">
@@ -372,10 +382,40 @@
     pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnSignin.click(); });
     empIdInput.addEventListener('keydown', e => { if (e.key === 'Enter') pwInput.focus(); });
 
+    // Employee / Client login toggle. Employee keeps the numeric-only ID field
+    // (unchanged); Client lets the user type a client ID (XX-0-NNN-CC) or an email.
+    // The server detects the identifier type — we only adjust the input UX here.
+    let _loginMode = 'employee';
+    const loginToggle = document.getElementById('login-toggle');
+    const lblId       = document.getElementById('lbl-id');
+    const loginSubId  = document.getElementById('login-sub-id');
+    loginToggle?.querySelectorAll('.login-toggle-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        _loginMode = b.dataset.mode;
+        loginToggle.querySelectorAll('.login-toggle-btn').forEach(x => x.classList.toggle('active', x === b));
+        clearErr('login-error');
+        empIdInput.value = '';
+        if (_loginMode === 'client') {
+          lblId.textContent = 'CLIENT ID OR EMAIL';
+          empIdInput.placeholder = 'AC-0-001-28  or  you@company.com';
+          empIdInput.setAttribute('inputmode', 'text');
+          loginSubId.textContent = 'Enter your Client ID (or email) and password';
+        } else {
+          lblId.textContent = 'EMPLOYEE ID';
+          empIdInput.placeholder = '12-3-456-78';
+          empIdInput.setAttribute('inputmode', 'numeric');
+          loginSubId.textContent = 'Enter your Employee ID and password';
+        }
+        empIdInput.focus();
+      });
+    });
+
     // Auto-format the Employee ID as DD-T-NNN-CC (2-1-3-2 digits) while typing.
     // Digits-only entry (12345678) and hyphenated entry (12-3-456-78) both resolve to
     // the same display; login is hyphen-tolerant server-side, so either way works.
+    // Client mode is free text (client ID or email) — no reformatting.
     empIdInput.addEventListener('input', () => {
+      if (_loginMode !== 'employee') return;
       const d = empIdInput.value.replace(/\D/g, '').slice(0, 8);
       let out = d.slice(0, 2);
       if (d.length > 2) out += '-' + d.slice(2, 3);
@@ -384,19 +424,21 @@
       empIdInput.value = out;
     });
 
-    // Numbers only — block typed letters/symbols (incl. a literal hyphen; the
-    // auto-format above inserts hyphens for you). Paste is intentionally NOT blocked
-    // here so a pasted "12-3-456-78" still works — the input handler strips it clean.
+    // Employee mode: numbers only — block typed letters/symbols (the auto-format
+    // inserts hyphens). Client mode: allow letters/@/. for the client ID or email.
     empIdInput.addEventListener('beforeinput', e => {
+      if (_loginMode !== 'employee') return;
       if (e.inputType === 'insertText' && e.data && /\D/.test(e.data)) e.preventDefault();
     });
 
     btnSignin.addEventListener('click', async () => {
       clearErr('login-error');
-      const employee_id = empIdInput.value.trim();
-      const password    = pwInput.value;
-      if (!employee_id || !password) {
-        showErr('login-error', 'Please enter your Employee ID and password.');
+      const identifier = empIdInput.value.trim();
+      const password   = pwInput.value;
+      if (!identifier || !password) {
+        showErr('login-error', _loginMode === 'client'
+          ? 'Please enter your Client ID (or email) and password.'
+          : 'Please enter your Employee ID and password.');
         return;
       }
 
@@ -407,12 +449,12 @@
         const res = await fetch(`${EDGE}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id, password }),
+          body: JSON.stringify({ identifier, password }),
         });
         const data = await res.json();
 
         if (!res.ok || !data.session) {
-          showErr('login-error', data.error || 'Invalid Employee ID or password.');
+          showErr('login-error', data.error || 'Invalid ID or password.');
           return;
         }
 
@@ -429,7 +471,7 @@
 
         // Check if forced password change is required (server sends just the flag)
         if (data.force_password_change) {
-          _pwCtx = { employeeId: employee_id };
+          _pwCtx = { employeeId: identifier };
           renderPwFeedback(_pwFeedback, '', _pwCtx);
           showView('view-change-password');
           return;
