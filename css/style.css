@@ -394,6 +394,13 @@ input, textarea, select, button {
   background: var(--accent-dim);
 }
 
+/* Evaluation cycle preset selector */
+.evc-preset-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 /* ══════════════════════════════════════════════════════════
    INPUTS & FORMS
    ══════════════════════════════════════════════════════════ */

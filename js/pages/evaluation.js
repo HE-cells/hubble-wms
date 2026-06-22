@@ -810,8 +810,8 @@ function _openCycleModal(cycle) {
       ${isEdit ? '' : `
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="color:var(--text-secondary);font-size:12px;">Preset:</span>
-        <button class="btn btn-ghost" id="evc-preset-h1" type="button">H1 · Mid-Year (Jan–Jun)</button>
-        <button class="btn btn-ghost" id="evc-preset-h2" type="button">H2 · Year-End (Jul–Dec)</button>
+        <button class="btn btn-ghost evc-preset-btn" id="evc-preset-h1" type="button">H1 · Mid-Year (Jan–Jun)</button>
+        <button class="btn btn-ghost evc-preset-btn" id="evc-preset-h2" type="button">H2 · Year-End (Jul–Dec)</button>
       </div>`}
       <label class="form-label">Name *
         <input class="form-input" type="text" id="evc-name" value="${attr(cycle?.name || defPreset.name)}">
@@ -838,14 +838,26 @@ function _openCycleModal(cycle) {
       <button class="btn btn-primary" id="evc-save">${isEdit ? 'Save Changes' : 'Create Cycle'}</button>
     </div>`);
 
-  const applyPreset = p => {
+  const updatePresetSelection = preset => {
+    document.querySelectorAll('.evc-preset-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`evc-preset-${preset}`)?.classList.add('active');
+  };
+
+  const applyPreset = (p, preset) => {
     document.getElementById('evc-name').value     = p.name;
     document.getElementById('evc-start').value    = p.start;
     document.getElementById('evc-end').value      = p.end;
     document.getElementById('evc-deadline').value = p.deadline;
+    updatePresetSelection(preset);
   };
-  document.getElementById('evc-preset-h1')?.addEventListener('click', () => applyPreset(PRESETS.h1));
-  document.getElementById('evc-preset-h2')?.addEventListener('click', () => applyPreset(PRESETS.h2));
+
+  // Set initial active preset
+  if (!isEdit) {
+    updatePresetSelection(defPreset === PRESETS.h1 ? 'h1' : 'h2');
+  }
+
+  document.getElementById('evc-preset-h1')?.addEventListener('click', () => applyPreset(PRESETS.h1, 'h1'));
+  document.getElementById('evc-preset-h2')?.addEventListener('click', () => applyPreset(PRESETS.h2, 'h2'));
 
   document.getElementById('evc-save')?.addEventListener('click', async () => {
     const name  = document.getElementById('evc-name').value.trim();
