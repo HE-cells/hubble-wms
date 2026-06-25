@@ -149,7 +149,6 @@ export const STATUS_BADGE = {
 // ── Balance cards (used by both MY LEAVE balance tab and team balance tab) ─
 
 export function _balCards(rows) {
-  const { esc } = window._hlFmt || {};   // resolved lazily to avoid circular deps
   if (rows.length === 0) return '';
   // Deduplicate by leave_type_code — guard against data anomalies
   const seen = new Set();
