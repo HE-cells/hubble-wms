@@ -1,7 +1,8 @@
 # Deployable app = index.html, app.html, js/, css/ — everything else stays local.
 
-# Internal docs & plans (never publish)
-*.md
+# Audit reports — security-sensitive, never publish
+AUDIT_*.md
+PROJECT_AUDIT_REPORT.md
 *.log
 
 # Project tooling / archives / backend
