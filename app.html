@@ -193,6 +193,15 @@
         Notifications
         <span class="nav-badge hidden" id="badge-requests">0</span>
       </a>
+      <a class="nav-item nav-help" data-route="#help" href="#help">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Help
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -682,7 +691,7 @@
   // ── Page routes ──────────────────────────────────────────────
   // Version query busts the browser cache so a hard refresh always loads the latest page JS.
   // Bump this alongside the CSS ?v= when page modules change.
-  const V = '?v=101';
+  const V = '?v=102';
   const pages = {
     '#client-portal': () => import('./js/pages/clientPortal.js' + V),
     '#tracker':   () => import('./js/pages/tracker.js'   + V),
@@ -700,6 +709,7 @@
     '#expenses':  () => import('./js/pages/expenses.js'   + V),
     '#evaluation': () => import('./js/pages/evaluation.js' + V),
     '#documents': () => import('./js/pages/documents.js'  + V),
+    '#help':      () => import('./js/pages/help.js'       + V),
   };
 
   // Route-role matrix — defence-in-depth that mirrors the nav visibility rules
