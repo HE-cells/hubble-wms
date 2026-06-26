@@ -1361,6 +1361,13 @@ tbody tr:hover .ts-remove-btn { opacity: 1; }
     width: 100%;
     min-width: 0;
   }
+
+  .sidebar-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-sidebar);
+    z-index: 1;
+  }
 }
 
 /* Public holiday */
