@@ -46,7 +46,7 @@ async function _loadPettyCash() {
     ]);
     _renderLedger(wrap, bal, txns, pending);
   } catch (err) {
-    wrap.innerHTML = _loadErrorHtml('pc-retry', 'Couldn't load petty cash',
+    wrap.innerHTML = _loadErrorHtml('pc-retry', "Couldn't load petty cash",
       'The float balance and ledger could not be retrieved — the figures shown could be wrong. Check your connection and retry.');
     document.getElementById('pc-retry')?.addEventListener('click', _loadPettyCash);
   }
