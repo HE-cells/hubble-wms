@@ -447,11 +447,21 @@ function _renderAssignBody(project, tasks, users, groups, _memberSearch = '', _g
     ? `Members <span style="color:var(--accent); font-size:var(--font-xs);">— ${esc(activeGroup.name)}</span>`
     : 'Members';
 
+  const allMembersChecked = visibleUsers.length > 0 && visibleUsers.every(u => assignedUsers.has(u.id));
+  const allGroupsChecked  = visibleGroups.length > 0 && visibleGroups.every(g => assignedGroups.has(g.id));
+
+  const selectAllRow = (id, checked, disabled) => `
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:2px;">
+      <input type="checkbox" id="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>
+      <span style="color:var(--text-muted); font-size:var(--font-xs);">Select all</span>
+    </label>`;
+
   body.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:6px;">
       <span class="text-muted" style="font-size:var(--font-xs); text-transform:uppercase; letter-spacing:0.5px;">${memberLabel}</span>
       ${searchBox('pr-as-member-search', 'Search members…', _memberSearch)}
       <div id="pr-as-member-list" style="display:flex; flex-direction:column; gap:6px;">
+        ${visibleUsers.length ? selectAllRow('pr-as-all-members', allMembersChecked, false) : ''}
         ${visibleUsers.map(u => row('user', u.id, u.name || u.email, assignedUsers.has(u.id))).join('') || '<div class="text-muted" style="font-size:var(--font-sm)">No members found</div>'}
       </div>
     </div>
@@ -459,6 +469,7 @@ function _renderAssignBody(project, tasks, users, groups, _memberSearch = '', _g
       <span class="text-muted" style="font-size:var(--font-xs); text-transform:uppercase; letter-spacing:0.5px;">Groups</span>
       ${searchBox('pr-as-group-search', 'Search groups…', _groupSearch)}
       <div id="pr-as-group-list" style="display:flex; flex-direction:column; gap:6px;">
+        ${visibleGroups.length ? selectAllRow('pr-as-all-groups', allGroupsChecked, false) : ''}
         ${groupRows}
       </div>
     </div>`;
@@ -481,6 +492,52 @@ function _renderAssignBody(project, tasks, users, groups, _memberSearch = '', _g
       _renderAssignBody(project, tasks, users, groups, _memberSearch, _groupSearch,
         gid === _activeGroupId ? null : gid);
     });
+  });
+
+  // Select all — members
+  body.querySelector('#pr-as-all-members')?.addEventListener('change', async function() {
+    const on = this.checked;
+    const toToggle = visibleUsers.filter(u => assignedUsers.has(u.id) !== on);
+    if (!toToggle.length) return;
+    this.disabled = true;
+    try {
+      let taskId = tasks[0]?.id;
+      if (!taskId) { const t = await createTask(project.id, 'General'); taskId = t.id; }
+      for (const u of toToggle) {
+        if (on) await assignTask(taskId, 'user', u.id);
+        else    for (const t of tasks) await unassignTask(t.id, 'user', u.id);
+      }
+      const fresh = await getTasks(project.id);
+      _renderAssignBody(project, fresh, users, groups, _memberSearch, _groupSearch, _activeGroupId);
+      window.showToast?.(on ? 'All assigned' : 'All removed', 'success');
+    } catch (err) {
+      window.showToast?.(err.message, 'error');
+      const fresh = await getTasks(project.id);
+      _renderAssignBody(project, fresh, users, groups, _memberSearch, _groupSearch, _activeGroupId);
+    }
+  });
+
+  // Select all — groups
+  body.querySelector('#pr-as-all-groups')?.addEventListener('change', async function() {
+    const on = this.checked;
+    const toToggle = visibleGroups.filter(g => assignedGroups.has(g.id) !== on);
+    if (!toToggle.length) return;
+    this.disabled = true;
+    try {
+      let taskId = tasks[0]?.id;
+      if (!taskId) { const t = await createTask(project.id, 'General'); taskId = t.id; }
+      for (const g of toToggle) {
+        if (on) await assignTask(taskId, 'group', g.id);
+        else    for (const t of tasks) await unassignTask(t.id, 'group', g.id);
+      }
+      const fresh = await getTasks(project.id);
+      _renderAssignBody(project, fresh, users, groups, _memberSearch, _groupSearch, _activeGroupId);
+      window.showToast?.(on ? 'All assigned' : 'All removed', 'success');
+    } catch (err) {
+      window.showToast?.(err.message, 'error');
+      const fresh = await getTasks(project.id);
+      _renderAssignBody(project, fresh, users, groups, _memberSearch, _groupSearch, _activeGroupId);
+    }
   });
 
   // Checkbox assign / unassign
