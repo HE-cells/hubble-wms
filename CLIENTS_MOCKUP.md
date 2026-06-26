@@ -1,6 +1,6 @@
 # Mockup Client & Project Seed List
 
-16 fictional clients drawn from sci-fi films and series, each with 2–3 thematically matched projects.
+22 fictional clients drawn from sci-fi films, series, and games, each with 2–3 thematically matched projects.
 
 ---
 
@@ -24,6 +24,12 @@
 | 14 | Sirius Cybernetics Corp | Hitchhiker's Guide | Magrathea | Milky Way | GBP |
 | 15 | InGen Technologies | Jurassic Park | San Diego, CA | USA | USD |
 | 16 | Massive Dynamic | Fringe | Waltham, MA | USA | USD |
+| 17 | Arasaka Corporation | Cyberpunk 2077 | Tokyo | Japan | JPY |
+| 18 | Vault-Tec Corporation | Fallout | Washington D.C. | USA | USD |
+| 19 | Concordance Extraction Corp | Dead Space | Houston, TX | USA | USD |
+| 20 | Biotechnica | Cyberpunk 2077 | Rome | Italy | EUR |
+| 21 | Fragile Express | Death Stranding | Capital Knot City | USA | USD |
+| 22 | ARMS Tech | Metal Gear Solid | Rockville, MD | USA | USD |
 
 ---
 
@@ -236,3 +242,81 @@
 | Pattern Event Investigation Portal | Case management, evidence cataloguing, and cross-agency report sharing |
 | ZFT Research Grant Administration | Grant applications, fund disbursement tracking, and outcome reporting |
 | Cortexiphan Clinical Trial Management | Trial-phase scheduling, participant records, and adverse-event reporting |
+
+---
+
+### 17. Arasaka Corporation
+**Source:** Cyberpunk 2077 (game)
+**Address:** 1-1 Arasaka Tower, Shinjuku, Tokyo 160-0023, Japan
+**Currency:** JPY
+
+| Project | Description |
+|---------|-------------|
+| Night City Security Operations | Guard deployment scheduling, incident logging, and SLA compliance |
+| Soulkiller Data Extraction Programme | Subject session management, data-integrity verification, and archiving |
+| Arasaka Tower Corporate Affairs | Executive facilities, event scheduling, and visitor-access management |
+
+---
+
+### 18. Vault-Tec Corporation
+**Source:** Fallout (game series)
+**Address:** 1 Vault-Tec Plaza, Washington D.C., DC 20001, USA
+**Currency:** USD
+
+| Project | Description |
+|---------|-------------|
+| Vault Construction & Commissioning | Build-phase milestone tracking, contractor billing, and handover documentation |
+| GECK Resource Distribution | Supply-chain logistics, inventory management, and delivery scheduling |
+| Post-War Resettlement Programme | Resident onboarding, welfare tracking, and population reporting |
+
+---
+
+### 19. Concordance Extraction Corp (CEC)
+**Source:** Dead Space (game series)
+**Address:** 2211 Norfolk Street, Suite 100, Houston, TX 77098, USA
+**Currency:** USD
+
+| Project | Description |
+|---------|-------------|
+| Ishimura Planetcracker Fleet Operations | Vessel maintenance scheduling, crew rotation, and fuel-cost tracking |
+| Aegis VII Mining Site Management | Excavation progress reporting, equipment inventory, and safety-compliance log |
+| RIG Suit Maintenance & Certification | Unit service records, firmware updates, and certification renewal tracking |
+
+---
+
+### 20. Biotechnica
+**Source:** Cyberpunk 2077 (game)
+**Address:** Via della Conciliazione 10, 00193 Rome, Italy
+**Currency:** EUR
+
+| Project | Description |
+|---------|-------------|
+| Protein Farm Agricultural Operations | Crop-cycle scheduling, yield reporting, and distribution logistics |
+| Gene-Splice R&D Pipeline | Research-phase tracking, IP filing management, and trial documentation |
+| Night City Distribution Contract | Delivery routing, retailer billing, and cold-chain compliance |
+
+---
+
+### 21. Fragile Express
+**Source:** Death Stranding (game)
+**Address:** Capital Knot City, Eastern Seaboard, USA
+**Currency:** USD
+
+| Project | Description |
+|---------|-------------|
+| Strand Network Route Expansion | New-node commissioning, porter assignment, and connectivity reporting |
+| Chiral Network Relay Maintenance | Equipment servicing schedule, uptime monitoring, and fault-resolution log |
+| Last-Mile Delivery Operations | Parcel tracking, delivery SLA management, and customer satisfaction reporting |
+
+---
+
+### 22. ARMS Tech
+**Source:** Metal Gear Solid (game series)
+**Address:** 1700 Research Boulevard, Rockville, MD 20850, USA
+**Currency:** USD
+
+| Project | Description |
+|---------|-------------|
+| Metal Gear REX Development Programme | Engineering milestone tracking, parts procurement, and test-phase documentation |
+| DARPA Weapons Contract Management | Contract compliance, deliverable scheduling, and government-audit reporting |
+| FOX-HOUND Equipment Procurement | Requisition workflow, supplier management, and field-deployment inventory |
