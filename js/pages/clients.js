@@ -401,7 +401,7 @@ async function _openLoginsModal(client) {
   const mount = document.getElementById('modal-mount');
   mount.innerHTML = `
     <div class="modal-backdrop" id="cl-lg-backdrop">
-      <div class="modal modal-md" id="cl-lg-modal">
+      <div class="modal modal-lg" id="cl-lg-modal">
         <div class="modal-header">
           <span class="modal-title">Client logins — ${esc(client.name || '')}</span>
           <button class="modal-close" id="cl-lg-close">&times;</button>
