@@ -255,7 +255,7 @@ End-to-end audit trail covering all admin/manager actions across the app. Compon
 Cache **JS v=108→v=109 / CSS v=35→v=38**. Commit `dc47bd7`.
 
 ### 🔴 R45-03 · Remaining — F-01 (P0) still the go-live gate
-1. **Apply `20260629_audit_log.sql` in prod Studio** — `NOTIFY pgrst, 'reload schema';` after apply; verify admin logs page loads.
+1. ✅ **`20260629_audit_log.sql` applied in prod Studio** — 2026-06-29.
 2. **F-01 (P0)** — authenticated production client RLS probe (user-only: needs prod client creds + Studio). Provision a test client in prod → log in on Client tab → verify My Portal shows own-scope-only, 0 cross-client, 0 employee PII, writes denied. This is the last gate before provisioning a real external client.
 3. **Roster swap** (go-live checklist #6, RSK-0, 3 confirms) — after F-01 passes.
 
