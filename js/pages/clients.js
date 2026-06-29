@@ -6,6 +6,7 @@ import { getClients, createClient, updateClient, deleteClient } from '../api/cli
 import { isAdmin, getSession } from '../auth.js';
 import { supabase } from '../config.js';
 import { esc, attr } from '../format.js';
+import { confirmModal } from '../components/confirmModal.js';
 
 const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
 
@@ -441,9 +442,85 @@ async function _openLoginsModal(client) {
       if (!data || data.length === 0) { listEl.innerHTML = `<div class="text-muted">No client logins yet.</div>`; return; }
       listEl.innerHTML = `
         <div class="table-wrapper"><table>
-          <thead><tr><th>Client ID</th><th>Name</th><th>Email</th></tr></thead>
-          <tbody>${data.map(u => `<tr><td>${esc(u.client_code || '—')}</td><td>${esc(u.name || '—')}</td><td>${esc(u.email || '—')}</td></tr>`).join('')}</tbody>
+          <thead><tr><th>Client ID</th><th>Name</th><th>Email</th><th></th></tr></thead>
+          <tbody>${data.map(u => `
+            <tr data-uid="${attr(u.id)}" data-code="${attr(u.client_code || '')}" data-email="${attr(u.email || '')}">
+              <td>${esc(u.client_code || '—')}</td>
+              <td>${esc(u.name || '—')}</td>
+              <td>${esc(u.email || '—')}</td>
+              <td style="white-space:nowrap;">
+                <button class="row-action-btn cl-reset-pw" title="Reset password">Reset pw</button>
+                <button class="row-action-btn danger cl-delete-user" title="Delete login">Delete</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
         </table></div>`;
+
+      listEl.querySelectorAll('.cl-reset-pw').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const tr = btn.closest('tr');
+          const uid = tr.dataset.uid;
+          const code = tr.dataset.code;
+          const email = tr.dataset.email;
+          if (!await confirmModal({ title: 'Reset password', message: `Reset password for ${esc(code)} (${esc(email)})?`, confirmText: 'Reset password', danger: true })) return;
+          btn.disabled = true;
+          try {
+            const token = getSession()?.access_token;
+            const res = await fetch(`${EDGE}/admin-reset-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ target_user_id: uid }),
+            });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.error || 'Reset failed');
+            const credText = `Client ID: ${code}\nEmail: ${email}\nNew password: ${d.new_password || ''}`;
+            const resultEl = mount.querySelector('#cl-lg-result');
+            resultEl.innerHTML = `
+              <div class="card" style="background:#1e2329;">
+                <div style="font-weight:500; margin-bottom:4px;">Password reset — ${esc(code)}</div>
+                <div style="font-size:13px;">Email: ${esc(email)}</div>
+                <div style="font-size:13px;">New password: <strong>${esc(d.new_password || '')}</strong></div>
+                <div class="text-muted" style="font-size:12px; margin-top:6px;">Copy these now — the password is shown only once.</div>
+                <button class="btn btn-ghost btn-sm" id="cl-lg-copy-cred" style="margin-top:6px;">Copy credentials</button>
+              </div>`;
+            resultEl.querySelector('#cl-lg-copy-cred').onclick = () => {
+              navigator.clipboard.writeText(credText);
+              window.showToast?.('Credentials copied', 'success');
+            };
+            window.showToast?.('Password reset', 'success');
+          } catch (err) {
+            window.showToast?.(err.message, 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.cl-delete-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const tr = btn.closest('tr');
+          const uid = tr.dataset.uid;
+          const code = tr.dataset.code;
+          const email = tr.dataset.email;
+          if (!await confirmModal({ title: 'Delete client login', message: `Delete login for ${esc(code)} (${esc(email)})? This cannot be undone.`, confirmText: 'Delete', danger: true })) return;
+          btn.disabled = true;
+          try {
+            const token = getSession()?.access_token;
+            await fetch(`${EDGE}/admin-set-account-active`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ target_user_id: uid, active: false }),
+            });
+            const { error } = await supabase.from('profiles').delete().eq('id', uid);
+            if (error) throw error;
+            window.showToast?.('Client login deleted', 'success');
+            refreshList();
+          } catch (err) {
+            window.showToast?.(err.message, 'error');
+            btn.disabled = false;
+          }
+        });
+      });
     } catch (err) {
       listEl.innerHTML = `<div class="text-muted">Couldn't load logins: ${esc(err.message)}</div>`;
     }
