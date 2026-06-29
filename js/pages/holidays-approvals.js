@@ -2,6 +2,7 @@
 
 import { S, _fmt, _balCards, STATUS_BADGE } from './holidays-state.js';
 import { esc, attr } from '../format.js';
+import { logAction } from '../api/auditLog.js';
 import { empSelectHtml, wireEmpSelect } from '../components/empSelect.js';
 import {
   approveLeaveRequest, hrApproveLeaveRequest, rejectLeaveRequest,
@@ -129,6 +130,7 @@ export function renderApprovals(wrap, { syncBadges, approvalRequests, approvalFl
           const updated = await approveLeaveRequest(btn.dataset.id, S.myEmployee?.id, null);
           S.requests = S.requests.map(r => r.id === updated.id ? updated : r);
           window.showToast?.('Request approved — employee will be notified.', 'success');
+          logAction('approve_leave_request', 'leave_request', btn.dataset.id, updated.employee?.full_name || null, { status: { old: 'pending', new: 'approved' } });
           _renderApprovalPending(body);
           syncBadges?.();
         } catch (err) { window.showToast?.(err.message, 'error'); }
@@ -148,6 +150,7 @@ export function renderApprovals(wrap, { syncBadges, approvalRequests, approvalFl
             const updated = await rejectLeaveRequest(btn.dataset.id, reason);
             S.requests = S.requests.map(r => r.id === updated.id ? updated : r);
             window.showToast?.('Request rejected — employee will be notified.', 'success');
+            logAction('reject_leave_request', 'leave_request', btn.dataset.id, updated.employee?.full_name || null, { status: { old: 'pending', new: 'rejected' }, reason });
             _renderApprovalPending(body);
             syncBadges?.();
           },
@@ -161,6 +164,7 @@ export function renderApprovals(wrap, { syncBadges, approvalRequests, approvalFl
           const updated = await approveFlexSwap(btn.dataset.id, S.myEmployee?.id, null);
           S.flexSwaps = S.flexSwaps.map(s => s.id === updated.id ? updated : s);
           window.showToast?.('Flex swap approved — employee will be notified.', 'success');
+          logAction('approve_flex_swap', 'flex_swap', btn.dataset.id, updated.employee?.full_name || null, { status: { old: 'pending', new: 'approved' } });
           _renderApprovalPending(body);
           syncBadges?.();
         } catch (err) { window.showToast?.(err.message, 'error'); }
@@ -180,6 +184,7 @@ export function renderApprovals(wrap, { syncBadges, approvalRequests, approvalFl
             const updated = await rejectFlexSwap(btn.dataset.id, reason);
             S.flexSwaps = S.flexSwaps.map(s => s.id === updated.id ? updated : s);
             window.showToast?.('Flex swap rejected — employee will be notified.', 'success');
+            logAction('reject_flex_swap', 'flex_swap', btn.dataset.id, updated.employee?.full_name || null, { status: { old: 'pending', new: 'rejected' }, reason });
             _renderApprovalPending(body);
             syncBadges?.();
           },

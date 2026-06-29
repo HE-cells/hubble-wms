@@ -7,6 +7,7 @@ import { isAdmin, getSession } from '../auth.js';
 import { supabase } from '../config.js';
 import { esc, attr } from '../format.js';
 import { confirmModal } from '../components/confirmModal.js';
+import { logAction } from '../api/auditLog.js';
 
 const EDGE = 'https://sjkggguedgtynktymzes.supabase.co/functions/v1';
 
@@ -248,6 +249,8 @@ async function _handleAdd() {
     nameEl.focus();
     _renderTable();
     window.showToast?.('Client added', 'success');
+    logAction('create_client', 'client', client.id, client.name,
+      { name: client.name, currency: client.currency });
   } catch (err) {
     window.showToast?.(err.message, 'error');
   } finally {
@@ -266,6 +269,8 @@ async function _setActive(client, active) {
     if (sel) sel.value = 'all';
     _renderTable();
     window.showToast?.(active ? 'Client restored' : 'Client archived', 'success');
+    logAction(active ? 'restore_client' : 'archive_client', 'client', client.id, client.name,
+      { status: { old: active ? 'inactive' : 'active', new: active ? 'active' : 'inactive' } });
   } catch (err) {
     window.showToast?.(err.message, 'error');
   }
@@ -332,6 +337,10 @@ function _openEditModal(client) {
 
     const saveBtn = mount.querySelector('#cl-modal-save');
     saveBtn.disabled = true;
+    const changes = {};
+    if (payload.name     !== client.name)     changes.name     = { old: client.name,     new: payload.name };
+    if (payload.address  !== client.address)  changes.address  = { old: client.address,  new: payload.address };
+    if (payload.currency !== client.currency) changes.currency = { old: client.currency, new: payload.currency };
     try {
       const updated = await updateClient(client.id, payload);
       const idx = _clients.findIndex(c => c.id === client.id);
@@ -339,6 +348,8 @@ function _openEditModal(client) {
       close();
       _renderTable();
       window.showToast?.('Client updated', 'success');
+      logAction('update_client', 'client', client.id, payload.name || client.name,
+        Object.keys(changes).length ? { fields: changes } : null);
     } catch (err) {
       window.showToast?.(err.message, 'error');
       saveBtn.disabled = false;
@@ -385,6 +396,8 @@ function _confirmDelete(client) {
       close();
       _renderTable();
       window.showToast?.('Client deleted', 'success');
+      logAction('delete_client', 'client', client.id, client.name,
+        { entity: { id: client.id, name: client.name } });
     } catch (err) {
       // Surface the DB error (e.g. FK from projects) — keep the modal open.
       window.showToast?.(err.message, 'error');
@@ -488,6 +501,8 @@ async function _openLoginsModal(client) {
               window.showToast?.('Credentials copied', 'success');
             };
             window.showToast?.('Password reset', 'success');
+            logAction('reset_client_login_password', 'client', client.id, client.name,
+              { client_code: code, email });
           } catch (err) {
             window.showToast?.(err.message, 'error');
           } finally {
@@ -514,6 +529,8 @@ async function _openLoginsModal(client) {
             const { error } = await supabase.from('profiles').delete().eq('id', uid);
             if (error) throw error;
             window.showToast?.('Client login deleted', 'success');
+            logAction('delete_client_login', 'client', client.id, client.name,
+              { client_code: code, email });
             refreshList();
           } catch (err) {
             window.showToast?.(err.message, 'error');
@@ -563,6 +580,8 @@ async function _openLoginsModal(client) {
       mount.querySelector('#cl-lg-email').value = '';
       refreshList();
       window.showToast?.('Client login created', 'success');
+      logAction('provision_client_login', 'client', client.id, client.name,
+        { client_code: data.client_code, email });
     } catch (err) {
       window.showToast?.(err.message, 'error');
     } finally {

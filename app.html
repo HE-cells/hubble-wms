@@ -193,6 +193,17 @@
         Notifications
         <span class="nav-badge hidden" id="badge-requests">0</span>
       </a>
+      <a class="nav-item nav-admin-logs" data-route="#admin-logs" href="#admin-logs" style="display:none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="15" y2="17"/>
+          <line x1="9" y1="9" x2="10" y2="9"/>
+        </svg>
+        Admin Logs
+      </a>
       <a class="nav-item nav-help" data-route="#help" href="#help">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -450,7 +461,7 @@
   });
 
   // Auto-expand SHOW MORE when navigating directly to a WMS route
-  const wmsRoutes = new Set(['#employees', '#holidays', '#requests', '#expenses', '#evaluation', '#documents', '#help']);
+  const wmsRoutes = new Set(['#employees', '#holidays', '#requests', '#expenses', '#evaluation', '#documents', '#help', '#admin-logs']);
   const currentHash = window.location.hash.split('?')[0];
   if (wmsRoutes.has(currentHash)) _setWmsExpanded(true);
 
@@ -503,6 +514,10 @@
     // Employees: admin/owner only (WMS Phase 3)
     const employeesItem = document.querySelector('.nav-employees');
     if (employeesItem) employeesItem.style.display = isAdmin() ? '' : 'none';
+
+    // Admin Logs: admin/owner only
+    const adminLogsItem = document.querySelector('.nav-admin-logs');
+    if (adminLogsItem) adminLogsItem.style.display = isAdmin() ? '' : 'none';
 
     // Leave & Holidays: visible to all authenticated users (M2 Phase 4)
     // (employees submit their own leave requests; admin approves)
@@ -719,7 +734,7 @@
   // ── Page routes ──────────────────────────────────────────────
   // Version query busts the browser cache so a hard refresh always loads the latest page JS.
   // Bump this alongside the CSS ?v= when page modules change.
-  const V = '?v=108';
+  const V = '?v=109';
   const pages = {
     '#client-portal': () => import('./js/pages/clientPortal.js' + V),
     '#tracker':   () => import('./js/pages/tracker.js'   + V),
@@ -737,7 +752,8 @@
     '#expenses':  () => import('./js/pages/expenses.js'   + V),
     '#evaluation': () => import('./js/pages/evaluation.js' + V),
     '#documents': () => import('./js/pages/documents.js'  + V),
-    '#help':      () => import('./js/pages/help.js'       + V),
+    '#help':       () => import('./js/pages/help.js'       + V),
+    '#admin-logs': () => import('./js/pages/adminLogs.js'  + V),
   };
 
   // Route-role matrix — defence-in-depth that mirrors the nav visibility rules
@@ -747,7 +763,8 @@
   const routeAllowed = {
     '#reports':   () => canViewReports(),          // owner/admin/manager
     '#clients':   () => isAdmin() || isManager(),  // owner/admin/manager
-    '#employees': () => isAdmin(),                  // owner/admin
+    '#employees':  () => isAdmin(),                  // owner/admin
+    '#admin-logs': () => isAdmin(),
   };
 
   for (const [hash, loader] of Object.entries(pages)) {

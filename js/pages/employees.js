@@ -10,8 +10,10 @@ import {
   getDocuments, addDocument, deleteDocument,
   getSkills, addSkill, removeSkill,
   findProfileByEmail, updateProfileName,
+  getAuditLog,
 } from '../api/employees.js';
 import { esc, attr } from '../format.js';
+import { logAction } from '../api/auditLog.js';
 
 // Supabase Edge Functions base — admin actions (provision / reset / clear-mfa)
 // and the read-only account-activation-status feed for the Account Status tab.
@@ -525,6 +527,7 @@ function _renderModal(isEdit, admin) {
     ...(admin && isEdit ? [
       { id: 'documents', label: 'Documents' },
       { id: 'skills',    label: 'Skills' },
+      { id: 'history',   label: 'History' },
     ] : []),
   ];
 
@@ -819,6 +822,13 @@ function _renderModal(isEdit, admin) {
             </div>
           </div>` : ''}
 
+          <!-- ── History (admin + edit only) ───────────────── -->
+          ${admin && isEdit ? `
+          <div class="tab-panel" id="em-tab-history">
+            <div id="em-history-loading" style="color:var(--text-muted);padding:8px 0;">Loading history…</div>
+            <div id="em-history-list" style="display:none;"></div>
+          </div>` : ''}
+
         </div><!-- /.modal-body -->
 
         <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:var(--sp-2)">
@@ -870,6 +880,7 @@ function _renderModal(isEdit, admin) {
       mount.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(`em-tab-${btn.dataset.tab}`)?.classList.add('active');
+      if (btn.dataset.tab === 'history') _loadHistoryTab(emp.id);
     });
   });
 
@@ -974,6 +985,8 @@ function _renderModal(isEdit, admin) {
           `<span style="color:var(--accent)">✓ Account provisioned</span> — ${esc(result.email)}`;
         btn.style.display = 'none';
         window.showToast?.('Account provisioned', 'success');
+        logAction('provision_employee_account', 'employee', _modalEmployee.id,
+          _modalEmployee.full_name, { email: result.email, employee_id: result.employee_id });
         await _refreshEmployees();   // pick up the new user_id link so the tab/table update without a reload
       } catch (err) {
         window.showToast?.(err.message, 'error');
@@ -1011,6 +1024,8 @@ function _renderModal(isEdit, admin) {
         };
         box.style.display = '';
         window.showToast?.('Password reset — share the new password with the employee', 'success');
+        logAction('reset_employee_password', 'employee', _modalEmployee.id,
+          _modalEmployee.full_name, { employee_id: _modalEmployee.employee_id });
       } catch (err) {
         window.showToast?.(err.message, 'error');
       } finally {
@@ -1037,6 +1052,8 @@ function _renderModal(isEdit, admin) {
         window.showToast?.(data.removed > 0
           ? `2FA cleared (${data.removed} factor${data.removed > 1 ? 's' : ''} removed)`
           : 'No 2FA factor was enrolled', 'success');
+        logAction('clear_employee_2fa', 'employee', _modalEmployee.id,
+          _modalEmployee.full_name, { factors_removed: data.removed });
       } catch (err) {
         window.showToast?.(err.message, 'error');
       } finally {
@@ -1070,6 +1087,11 @@ function _renderModal(isEdit, admin) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Action failed');
         window.showToast?.(makeActive ? 'Account reactivated' : 'Account deactivated', 'success');
+        logAction(
+          makeActive ? 'reactivate_employee_account' : 'deactivate_employee_account',
+          'employee', _modalEmployee.id, _modalEmployee.full_name,
+          { status: { old: makeActive ? 'deactivated' : 'active', new: makeActive ? 'active' : 'deactivated' } }
+        );
         _activationMap = (await _fetchActivationMap()) || _activationMap;
         btn.disabled = false;
         btn.textContent = (_isDeactivated(_modalEmployee) ? 'Reactivate' : 'Deactivate') + ' account';
@@ -1179,6 +1201,48 @@ function _renderModal(isEdit, admin) {
 }
 
 // ── Documents list & add ──────────────────────────────────────
+
+async function _loadHistoryTab(employeeId) {
+  const loadingEl = document.getElementById('em-history-loading');
+  const listEl    = document.getElementById('em-history-list');
+  if (!loadingEl || !listEl) return;
+  if (listEl.dataset.loaded === employeeId) return;  // already loaded for this employee
+  loadingEl.style.display = '';
+  listEl.style.display    = 'none';
+  try {
+    const rows = await getAuditLog(employeeId);
+    if (rows.length === 0) {
+      listEl.innerHTML = `<div class="text-muted" style="padding:8px 0;">No change history recorded.</div>`;
+    } else {
+      const fmtTs = ts => ts
+        ? new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+        : '—';
+      listEl.innerHTML = `
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>When</th><th>Who</th><th>Field</th><th>Old value</th><th>New value</th>
+            </tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td style="white-space:nowrap;font-size:var(--font-xs);">${esc(fmtTs(r.changed_at))}</td>
+                  <td>${esc(r.changed_by_profile?.name || r.changed_by_profile?.email || '—')}</td>
+                  <td><code style="font-size:var(--font-xs);">${esc(r.field_name || '—')}</code></td>
+                  <td class="text-muted" style="max-width:180px;word-break:break-word;">${esc(r.old_value ?? '—')}</td>
+                  <td style="max-width:180px;word-break:break-word;">${esc(r.new_value ?? '—')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+    listEl.dataset.loaded = employeeId;
+    loadingEl.style.display = 'none';
+    listEl.style.display    = '';
+  } catch (err) {
+    loadingEl.textContent = `Failed to load history: ${err.message}`;
+  }
+}
 
 function _renderDocsList() {
   const list = document.getElementById('em-docs-list');

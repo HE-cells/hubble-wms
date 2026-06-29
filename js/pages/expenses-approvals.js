@@ -4,6 +4,7 @@ import { S, _fmt, _money, _badge, _settled, _curOpts, _projOptions, _projOptions
 import { esc, attr, toISODate, todayISO } from '../format.js';
 import { weekNavHtml, wireWeekNav } from '../components/weekNav.js';
 import { supabase } from '../config.js';
+import { logAction } from '../api/auditLog.js';
 import {
   getAllTransactions, approveTransaction, rejectTransaction, overrideTransactionStatus, updateTransaction, cancelTransaction,
   getAllTravelClaims, approveTravelClaim, rejectTravelClaim, updateTravelClaim, cancelTravelClaim,
@@ -200,6 +201,8 @@ function _wireApprovals(wrap) {
     try {
       await approveFns[btn.dataset.kind](btn.dataset.id, btn.dataset.tier, S.profile.id);
       window.showToast?.('Approved.', 'success');
+      const _at = { exp: 'expense', claim: 'travel_claim', trip: 'trip_request' }[btn.dataset.kind];
+      logAction('approve_' + _at, _at, btn.dataset.id, null, { status: { old: 'pending', new: 'approved' } });
       window.refreshExpenseBadge?.();
       await _refreshCountCb?.();
       _updateBadgeCb?.();
@@ -214,6 +217,7 @@ function _wireApprovals(wrap) {
     try {
       await approveSettlement(btn.dataset.id);
       window.showToast?.('Settlement approved — float entry posted.', 'success');
+      logAction('approve_settlement', 'trip_request', btn.dataset.id, null, { settlement_status: { old: 'submitted', new: 'approved' } });
       window.refreshExpenseBadge?.();
       await _refreshCountCb?.();
       _updateBadgeCb?.();
@@ -494,6 +498,8 @@ function _openRejectModal(kind, id) {
     try {
       await rejectFns[kind](id, S.profile.id, reason);
       window.showToast?.('Rejected.', 'success');
+      const _rt = { exp: 'expense', claim: 'travel_claim', trip: 'trip_request' }[kind];
+      logAction('reject_' + _rt, _rt, id, null, { status: { old: 'pending', new: 'rejected' }, reason: reason || null });
       window.refreshExpenseBadge?.();
       await _refreshCountCb?.();
       _updateBadgeCb?.();

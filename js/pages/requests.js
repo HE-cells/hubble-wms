@@ -1,6 +1,7 @@
 // js/pages/requests.js — Notifications: own leave requests for all users, + admin request queues
 
 import { isAdmin } from '../auth.js';
+import { logAction } from '../api/auditLog.js';
 import { confirmModal, promptModal } from '../components/confirmModal.js';
 import { supabase } from '../config.js';
 import {
@@ -463,6 +464,7 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
         const { error } = await supabase.rpc('approve_deletion_request', { p_request_id: id });
         if (error) throw error;
         window.showToast?.(`${entityType} "${entityName}" deleted`, 'success');
+        logAction('approve_deletion_request', 'deletion_request', id, entityName, { status: { old: 'pending', new: 'approved' } });
         await _refreshBadge();
         await _load();
       } catch (err) {
@@ -485,6 +487,9 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
           .eq('id', id);
         if (error) throw error;
         window.showToast?.('Deletion request rejected', 'success');
+        const _dr = delReqs.find(r => r.id === id);
+        const _drName = _dr ? (entityMap[_dr.entity_id] || _dr.entity_id) : null;
+        logAction('reject_deletion_request', 'deletion_request', id, _drName, { status: { old: 'pending', new: 'rejected' }, reason: note || null });
         await _refreshBadge();
         await _load();
       } catch (err) {
@@ -504,6 +509,7 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
         // Atomic RPC updates profile name + employees.full_name + status together.
         await reviewNameChangeRequest(id, true);
         window.showToast?.(`Name updated to "${newName}"`, 'success');
+        logAction('approve_name_change', 'name_change', id, newName, { status: { old: 'pending', new: 'approved' }, new_name: newName });
         await _refreshBadge();
         await _load();
       } catch (err) {
@@ -526,6 +532,8 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
           .eq('id', id);
         if (error) throw error;
         window.showToast?.('Name change rejected', 'success');
+        const _ncr = ncrReqs.find(r => r.id === id);
+        logAction('reject_name_change', 'name_change', id, _ncr?.requester?.name || null, { status: { old: 'pending', new: 'rejected' }, reason: note || null });
         await _refreshBadge();
         await _load();
       } catch (err) {
@@ -543,6 +551,8 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
       try {
         await approveJobTitleChangeRequest(id, _profile.id);
         window.showToast?.('Job title updated', 'success');
+        const _jtcr = jtcReqs.find(r => r.id === id);
+        logAction('approve_job_title_change', 'job_title_change', id, _jtcr?.employee?.full_name || _jtcr?.requester?.name || null, { status: { old: 'pending', new: 'approved' }, new_title: _jtcr?.requested_title || null });
         await _refreshBadge();
         await _load();
       } catch (err) {
@@ -562,6 +572,8 @@ function _render(delReqs, ncrReqs, entityMap, leaveReqs, jtcReqs, ownOnly, ownNo
       try {
         await rejectJobTitleChangeRequest(id, _profile.id, note);
         window.showToast?.('Job title request rejected', 'success');
+        const _rjtcr = jtcReqs.find(r => r.id === id);
+        logAction('reject_job_title_change', 'job_title_change', id, _rjtcr?.employee?.full_name || _rjtcr?.requester?.name || null, { status: { old: 'pending', new: 'rejected' }, reason: note || null });
         await _refreshBadge();
         await _load();
       } catch (err) {
