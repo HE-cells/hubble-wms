@@ -140,10 +140,11 @@ export function _datePlusDays(dateStr, n) {
 // ── Status badge map (used by multiple sub-modules) ───────────
 
 export const STATUS_BADGE = {
-  pending:   'badge badge-pending',
-  approved:  'badge badge-approved',
-  rejected:  'badge badge-rejected',
-  cancelled: 'badge',
+  pending:          'badge badge-pending',
+  manager_approved: 'badge badge-pending',
+  approved:         'badge badge-approved',
+  rejected:         'badge badge-rejected',
+  cancelled:        'badge',
 };
 
 // ── Balance cards (used by both MY LEAVE balance tab and team balance tab) ─
