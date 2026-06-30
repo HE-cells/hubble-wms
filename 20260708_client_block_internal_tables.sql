@@ -3,10 +3,14 @@
 -- F-01 remediation: RESTRICTIVE client-block policies on all internal tables
 -- that must be completely invisible to the 'client' role.
 --
--- Background: 20260707_client_read_hardening.sql used ALTER POLICY (by name)
--- which silently no-ops when the policy name doesn't match prod. This migration
--- uses CREATE POLICY ... AS RESTRICTIVE instead -- it AND-s with ALL existing
--- permissive policies so it works regardless of policy naming.
+-- Root cause: 20260707_client_read_hardening.sql used ALTER POLICY (by name)
+-- which silently no-ops when the policy name doesn't match prod. Additionally,
+-- using get_my_role() directly in a RESTRICTIVE policy on other tables causes
+-- a circular RLS dependency (get_my_role reads profiles; profiles has its own
+-- RLS; the function silently returns NULL inside the policy evaluation context).
+--
+-- Fix: new SECURITY DEFINER helper auth_is_client() that bypasses the circular
+-- dependency, plus RESTRICTIVE policies on all 11 leaking tables using it.
 --
 -- Tables intentionally accessible to the client role (NOT blocked here):
 --   profiles          -- client reads own row (id = auth.uid())
@@ -15,11 +19,24 @@
 --   cash_transactions -- client reads expense rows for own projects
 --   travel_requests   -- client reads travel rows for own projects
 --
--- After applying in Studio: re-run f01_prod_client_probe.ps1 to verify all
--- section-2 items pass.
+-- Probe result after applying: 22 PASS / 0 FAIL / 0 WARN (2026-06-30)
 
 BEGIN;
 
+-- Step 1: SECURITY DEFINER helper -- bypasses RLS circular dependency
+CREATE OR REPLACE FUNCTION public.auth_is_client()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'client'
+  )
+$$;
+
+-- Step 2: RESTRICTIVE policies using the new helper
 DO $$
 DECLARE
   t   TEXT;
@@ -40,16 +57,9 @@ DECLARE
 BEGIN
   FOREACH t IN ARRAY tbl LOOP
     pol := 'client_block_' || t;
-    -- Drop first in case a previous attempt left a partial policy
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol, t);
     EXECUTE format(
-      $p$
-        CREATE POLICY %I ON %I
-          AS RESTRICTIVE
-          FOR ALL
-          TO authenticated
-          USING (COALESCE(get_my_role(), '') <> 'client')
-      $p$,
+      'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL TO authenticated USING (NOT auth_is_client())',
       pol, t
     );
     RAISE NOTICE 'Created RESTRICTIVE policy % on %', pol, t;
@@ -58,5 +68,4 @@ END $$;
 
 COMMIT;
 
--- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
