@@ -13,6 +13,11 @@ PROJECT_AUDIT_REPORT.md
 !.claude/skills/wms-build/
 Archived/
 supabase/
+!supabase/
+supabase/*
+!supabase/probes/
+supabase/probes/*
+!supabase/probes/f01_prod_client_probe.ps1
 
 # OAuth credentials — NEVER commit
 Google Cloud/
