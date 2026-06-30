@@ -6,7 +6,7 @@
 // download + a print-friendly view. Strictly read-only.
 
 import { supabase } from '../config.js';
-import { esc, attr, formatDate } from '../format.js';
+import { esc, attr, formatDate, todayISO } from '../format.js';
 
 let _profile  = null;
 let _company  = '';
@@ -192,7 +192,7 @@ function _renderExpenseTable() {
 function _exportText() {
   const lines = [];
   lines.push(`${_company} — project report`);
-  lines.push(`Generated ${formatDate(new Date().toISOString().slice(0, 10))}`);
+  lines.push(`Generated ${formatDate(todayISO())}`);
   lines.push('');
   lines.push('HOURS BY PROJECT');
   _summary.forEach(p => {
