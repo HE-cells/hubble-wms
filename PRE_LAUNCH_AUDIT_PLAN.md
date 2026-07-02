@@ -76,7 +76,9 @@ via Phase 2D (approve a name-change request end-to-end).
 
 ## Phase 2 — Functional walkthrough (role by role)
 
-Use the production app at https://he-cells.github.io/hubble-wms/.
+Use the production app at https://he-cells.github.io/hubble-wms/
+(after the pending account transfer: `https://<new-account>.github.io/hubble-wms/` —
+see [REPO_TRANSFER_CHECKLIST.md](REPO_TRANSFER_CHECKLIST.md)).
 Test with the sci-fi roster accounts (before roster swap).
 
 ### 2A · Calendar & Timesheet
@@ -251,7 +253,8 @@ Cache bump: `app.html`'s page-module `V` constant `113→114` (now lives in
 **⚠️ Not yet verified live** — this container has no network access to prod
 Supabase or GitHub Pages (confirmed via a hard 403 gateway policy denial), so
 "0 CSP violations in console" could not be checked from here. **Still needs a
-post-push spot-check**: hard-refresh https://he-cells.github.io/hubble-wms/ and
+post-push spot-check**: hard-refresh https://he-cells.github.io/hubble-wms/ (or the
+new-account URL after the pending repo transfer) and
 index.html, open DevTools → Console, confirm zero CSP violations, and confirm
 login + app boot + font rendering all still work.
 

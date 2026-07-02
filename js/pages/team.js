@@ -568,7 +568,9 @@ function _openRateModal(user) {
 
 function _openAddMemberModal() {
   const mount = document.getElementById('modal-mount');
-  const appUrl = `${window.location.origin}/index.html`;
+  // Resolve against the current page (not origin) so the link keeps the
+  // GitHub Pages project subpath — same idiom as the OAuth redirect in auth.js.
+  const appUrl = new URL('index.html', window.location.href).href;
   mount.innerHTML = `
     <div class="modal-backdrop" id="tm-add-backdrop">
       <div class="modal modal-sm">

@@ -5,7 +5,7 @@
 > Supersedes `HE_interactive_timesheet_plan_draft.md` (kept as a historical pre-build artifact).
 > For the most recent session narrative, see `HANDOFF_20260601.md`.
 
-**State in one line:** ✅ **Live in production** ([he-cells.github.io/hubble-wms](https://he-cells.github.io/hubble-wms)) since 2026-06-11. All Timesheet + WMS modules (M2–M6) built & deployed; the login overhaul is live (R29–R35). Remaining: closeout (Help page, template wording) → real-roster swap (LAST). See [PENDING_TASKS.md](PENDING_TASKS.md).
+**State in one line:** ✅ **Live in production** ([he-cells.github.io/hubble-wms](https://he-cells.github.io/hubble-wms) — ⚠️ account transfer pending, URL becomes `https://<new-account>.github.io/hubble-wms`, see [REPO_TRANSFER_CHECKLIST.md](REPO_TRANSFER_CHECKLIST.md)) since 2026-06-11. All Timesheet + WMS modules (M2–M6) built & deployed; the login overhaul is live (R29–R35). Remaining: closeout (Help page, template wording) → real-roster swap (LAST). See [PENDING_TASKS.md](PENDING_TASKS.md).
 
 **Status legend (used throughout):** ✅ DONE · ⛔ STUB · ⏸ DEFERRED
 
@@ -20,7 +20,7 @@
 | Reports page | ✅ Done — filter bar, stacked bar, grouped table, donut, CSV export |
 | Google Sheets weekly export | ⏸ PARKED — plan ready; blocked until app is live + Sheet URL provided |
 | Deletion-request approval flow | ✅ Built as the Notifications page (`requests.js`) |
-| GitHub Pages deploy + prod redirect URL | ✅ Live since R24 — he-cells.github.io/hubble-wms |
+| GitHub Pages deploy + prod redirect URL | ✅ Live since R24 — he-cells.github.io/hubble-wms *(account transfer pending — see REPO_TRANSFER_CHECKLIST.md)* |
 | Documents / M6 automated documentation | ✅ Live — migrations applied; templates + doc requests (R21) |
 | Phase-2 (Reminders, Apps/Timesheet prefs, Google verification) | ⏸ DEFERRED |
 | **Overall** | ✅ **Live in prod** (R23–R35: deploy, login overhaul, R25 RLS sweep). Remaining: closeout → roster swap |
@@ -478,7 +478,7 @@ Profile row is global (all roles); company line shows client name for `client` r
 | Google Sheets weekly export | ⏸ PARKED — plan ready; needs app live + user-created Sheet URL |
 | Deletion-request approval flow | ✅ Built as the **Notifications page** (`requests.js`) — deletion + name-change + job-title requests |
 | Documents / M6 automated documentation | ✅ Live — `documents.js` + `api/documents.js`; templates, doc requests (R21), draft→generate; all migrations applied |
-| GitHub Pages deploy + prod redirect URL | ✅ Live since R24 — he-cells.github.io/hubble-wms |
+| GitHub Pages deploy + prod redirect URL | ✅ Live since R24 — he-cells.github.io/hubble-wms *(account transfer pending — see REPO_TRANSFER_CHECKLIST.md)* |
 | Phase-2 placeholders (Reminders, Apps/Timesheet prefs, Google verification) | ⏸ |
 
 ### Remaining work, in order

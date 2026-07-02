@@ -226,7 +226,8 @@ SELECT id, role, client_id FROM profiles WHERE role='client' AND client_id IS NU
 ## Phase 1B — Member role probe (browser checklist)
 
 Log in as a regular `member` sci-fi roster account at
-https://he-cells.github.io/hubble-wms/ and walk through in order:
+https://he-cells.github.io/hubble-wms/ (or the new-account URL after the pending
+repo transfer — see [REPO_TRANSFER_CHECKLIST.md](REPO_TRANSFER_CHECKLIST.md)) and walk through in order:
 
 1. [ ] Timesheet/Tracker shows only own time entries, not other employees'
 2. [ ] Hand-type `#clients`, `#employees`, `#reports`, `#admin-logs` in the URL bar — each bounces (toast + redirect to `#calendar`)
@@ -248,7 +249,7 @@ Log in as a `manager` sci-fi roster account:
 
 ## Phase 2 — Functional walkthrough (browser checklist, one pass through the whole app)
 
-Use https://he-cells.github.io/hubble-wms/ with sci-fi roster accounts, one role at a time (member → manager → admin → client).
+Use https://he-cells.github.io/hubble-wms/ (or the new-account URL after the pending repo transfer) with sci-fi roster accounts, one role at a time (member → manager → admin → client).
 
 - [ ] **Calendar/Timesheet**: month renders with holidays; add/edit/delete a time entry; submit for approval; WFH toggle; flex swap request; admin/manager sees all team entries, member sees own only
 - [ ] **Leave**: request leave; balance cards correct; 2-tier flow (pending → manager_approved → HR approves → approved); Team Leave scoped by role; Flex Swaps request/approve/reject; Holidays calendar+list view, admin CRUD; Balance tab Initialize Year + edit allocations (admin)
