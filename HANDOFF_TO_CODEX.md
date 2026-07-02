@@ -6,7 +6,10 @@
 
 This is the **Hubble Engineering WMS** — a vanilla HTML/CSS/JS timesheet + workforce
 management app on a Supabase backend, deployed to GitHub Pages
-(https://he-cells.github.io/hubble-wms/, repo `HE-cells/hubble-wms`). It's gated
+(https://he-cells.github.io/hubble-wms/, repo `HE-cells/hubble-wms` — ⚠️ an account
+transfer is pending; afterwards the app lives at
+`https://<new-account>.github.io/hubble-wms/` with no redirect from the old URL,
+see [REPO_TRANSFER_CHECKLIST.md](REPO_TRANSFER_CHECKLIST.md)). It's gated
 for go-live behind a 5-phase pre-launch audit. I (Claude) wrote the audit plan,
 closed out Phase 5's must-fix items, and assembled everything Phases 1–4 need to
 run — but I'm running in a Claude Code container with **no network access to prod
